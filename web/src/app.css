@@ -1,0 +1,62 @@
+/* Velora float mode: the sidebar and the view float on the page with one gap between them. */
+.appShell {
+    display: grid;
+    grid-template-columns: clamp(200px, 22vw, 280px) minmax(0, 1fr);
+    gap: var(--gap-sm);
+    height: 100dvh;
+    padding: max(var(--gap-sm), var(--safe-top)) max(var(--gap-sm), var(--safe-right)) max(var(--gap-sm), var(--safe-bottom)) max(var(--gap-sm), var(--safe-left));
+    box-sizing: border-box;
+}
+
+.appSidebarContent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-md);
+    height: 100%;
+    padding: var(--padding-sm);
+}
+
+.appBrand {
+    padding: var(--padding-xs) var(--padding-sm) 0;
+    letter-spacing: -0.02em;
+}
+
+.appMain {
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+}
+
+.appEmpty code {
+    font-size: inherit;
+}
+
+/* Narrow: one column, the project strip on top, the view scrolling under it. */
+@media (max-width: 767px) {
+    .appShell {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .appSidebar {
+        height: auto;
+    }
+
+    .appSidebarContent {
+        flex-direction: row;
+        align-items: center;
+        height: auto;
+    }
+
+    .appSidebarContent .projectListLabel {
+        display: none;
+    }
+
+    .appSidebarContent .projectList {
+        min-width: 0;
+        flex: 1;
+    }
+}

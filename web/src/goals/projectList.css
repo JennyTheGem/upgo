@@ -1,0 +1,97 @@
+.projectList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    min-height: 0;
+}
+
+.projectListLabel,
+.projectListEmpty {
+    padding: 0 var(--padding-sm);
+}
+
+.projectListItems {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-2xs);
+    overflow-y: auto;
+}
+
+.projectButton {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-2xs);
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    padding: var(--padding-xs) var(--padding-sm);
+    box-sizing: border-box;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    transition: background-color var(--duration-instant) var(--ease-default),
+                border-color var(--duration-instant) var(--ease-default);
+}
+
+.projectButton:hover {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent-solid);
+}
+
+.projectButton:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.projectButton--active {
+    background-color: var(--color-accent);
+    box-shadow: inset 2px 0 0 var(--color-accent-solid);
+}
+
+.projectButtonRow {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    min-width: 0;
+}
+
+.projectName {
+    flex: 1;
+    min-width: 0;
+    opacity: .8;
+}
+
+.projectButton:hover .projectName,
+.projectButton--active .projectName {
+    opacity: 1;
+}
+
+.projectCount {
+    flex-shrink: 0;
+    font-weight: 550;
+    opacity: .5;
+}
+
+.projectError {
+    color: var(--color-danger);
+}
+
+/* Narrow: the list becomes a strip of projects across the top. */
+@media (max-width: 767px) {
+    .projectListItems {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .projectListItems li {
+        flex: 0 0 auto;
+        max-width: 70vw;
+    }
+}
+
+html[data-reduce-motion] .projectButton {
+    transition: none;
+}

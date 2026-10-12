@@ -1,0 +1,255 @@
+.itemList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-2xs);
+}
+
+.itemRow {
+    /* Drag handle + checkbox + their gaps, so the detail lines up under the title. */
+    --row-lead: calc(20px + 16px + 2 * var(--gap-sm));
+    border-radius: var(--radius-xs);
+    border: 1px solid transparent;
+    transition: background-color var(--duration-instant) var(--ease-default),
+                border-color var(--duration-instant) var(--ease-default);
+}
+
+/* List-row grammar (designsystemV2 10): accent fill + accent-solid hairline on hover. */
+.itemRow:not(.itemRow--open):hover {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent-solid);
+}
+
+.itemRow--open {
+    background-color: var(--fill-subtle);
+    border-color: var(--color-border-subtle);
+}
+
+.itemRow--open:hover,
+.itemRow--selected {
+    border-color: var(--color-accent-solid);
+}
+
+.itemRow:has(.itemRowToggle:focus-visible) {
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+/* Drop lands before this row. */
+.itemRow--dropBefore {
+    box-shadow: inset 0 2px 0 var(--color-accent-solid);
+}
+
+.itemRowHead {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    min-height: 44px;
+    padding: 0 var(--padding-xs);
+}
+
+.itemDrag {
+    display: flex;
+    flex-shrink: 0;
+    cursor: grab;
+    opacity: .35;
+    transition: opacity var(--duration-fast) var(--ease-default);
+
+    img {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+.itemRow:hover .itemDrag {
+    opacity: .8;
+}
+
+.itemCheck {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--color-accent-solid);
+}
+
+.itemCheck:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.itemRowToggle {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: var(--gap-sm);
+    padding: var(--padding-xs) 0;
+    outline: none;
+}
+
+.itemTitle {
+    min-width: 0;
+    opacity: .8;
+}
+
+.itemRow:hover .itemTitle,
+.itemRow--open .itemTitle {
+    opacity: 1;
+}
+
+.itemId {
+    flex-shrink: 1;
+    min-width: 3ch;
+    opacity: .5;
+}
+
+.itemRow--done .itemTitle,
+.itemRow--dropped .itemTitle {
+    opacity: .5;
+}
+
+.itemRow--dropped .itemTitle {
+    text-decoration: line-through;
+}
+
+.itemChips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--gap-xs);
+}
+
+.itemMore {
+    flex-shrink: 0;
+    opacity: .55;
+}
+
+.itemMore:hover {
+    opacity: 1;
+}
+
+.itemDetail {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--gap-sm);
+    padding: var(--padding-xs) var(--padding-md) var(--padding-md) calc(var(--padding-xs) + var(--row-lead));
+}
+
+.itemBody {
+    margin: 0;
+    font-size: .9rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    opacity: .8;
+    user-select: text;
+}
+
+.itemPointers {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+    max-width: 100%;
+}
+
+.itemPointer {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    column-gap: var(--gap-sm);
+    row-gap: var(--gap-2xs);
+    align-items: baseline;
+
+    dt {
+        grid-column: 1;
+    }
+
+    dd {
+        grid-column: 2;
+        margin: 0;
+        opacity: .8;
+        user-select: text;
+    }
+}
+
+.itemMeta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--gap-sm);
+}
+
+.itemDetailButton {
+    padding: var(--padding-xs) var(--padding-sm);
+    font-size: var(--text-control);
+}
+
+.detailText {
+    align-self: stretch;
+    margin: 0;
+    max-height: 50dvh;
+    overflow: auto;
+    overscroll-behavior: contain;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    padding: var(--padding-md);
+    background-color: var(--fill-subtle);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    user-select: text;
+}
+
+.detailText:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+/* Narrow: chips drop under the title, the detail loses its indent. */
+@media (max-width: 767px) {
+    .itemRowHead {
+        flex-wrap: wrap;
+        row-gap: 0;
+    }
+
+    .itemChips {
+        order: 5;
+        flex-basis: 100%;
+        justify-content: flex-start;
+        padding: 0 0 var(--padding-xs) var(--row-lead);
+    }
+
+    .itemDetail {
+        padding-left: var(--padding-md);
+    }
+}
+
+/* Touch has no HTML5 drag: the menu's move up/down is the path, and the checkbox gets a full target. */
+@media (pointer: coarse) {
+    .itemRow {
+        --row-lead: calc(44px + var(--gap-sm));
+    }
+
+    .itemDrag {
+        display: none;
+    }
+
+    .itemCheck {
+        width: 22px;
+        height: 22px;
+        margin: 11px;
+    }
+
+    .itemRowToggle {
+        min-height: 44px;
+        align-items: center;
+    }
+}
+
+html[data-reduce-motion] .itemRow,
+html[data-reduce-motion] .itemDrag {
+    transition: none;
+}

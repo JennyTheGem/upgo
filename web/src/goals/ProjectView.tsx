@@ -1,0 +1,281 @@
+import "./projectView.css"
+import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
+import type { Item, Section } from "../../../src/core/schema.ts"
+import Button from "../primitives/button/Button.tsx"
+import { confirmAction } from "../primitives/confirmDialog/confirm.ts"
+import Dropdown from "../primitives/dropdown/dropdown.tsx"
+import { useDropdownTrigger } from "../primitives/dropdown/useDropdownTrigger.ts"
+import EmptyState from "../primitives/emptyState/EmptyState.tsx"
+import ErrorState from "../primitives/errorState/ErrorState.tsx"
+import { promptText } from "../primitives/promptDialog/prompt.ts"
+import SelectionBar from "../primitives/selectionBar/SelectionBar.tsx"
+import { toast } from "../primitives/toast/toast.ts"
+import FilterBar from "./FilterBar.tsx"
+import { NO_FILTERS, groupItems, type Filters, type Group } from "./filters.ts"
+import { formatForAgent } from "./format.ts"
+import ItemModal from "./ItemModal.tsx"
+import { itemMenu, sectionMenu, type ItemActions, type SectionActions } from "./itemMenu.ts"
+import ItemRow, { type RowApi } from "./ItemRow.tsx"
+import SectionBlock from "./SectionBlock.tsx"
+import TrapsPanel from "./TrapsPanel.tsx"
+import { useProject } from "./useProject.ts"
+
+type Editing = { item?: Item; section?: number }
+
+const neighbor = (groups: Group[], item: Item, dir: "up" | "down") => {
+    const peers = groups.find((g) => g.section.n === item.section)?.items ?? []
+    return peers[peers.findIndex((p) => p.id === item.id) + (dir === "up" ? -1 : 1)]
+}
+
+const toggled = (set: Set<string>, ids: string[], on: boolean) => {
+    const next = new Set(set)
+    for (const id of ids) {
+        if (on) next.add(id)
+        else next.delete(id)
+    }
+    return next
+}
+
+export default function ProjectView({ id, onChanged }: { id: string; onChanged: () => void }) {
+    const { data, error, reload, run } = useProject(id, onChanged)
+    const [filters, setFilters] = useState<Filters>(NO_FILTERS)
+    const [expanded, setExpanded] = useState<Set<string>>(new Set())
+    const [picked, setPicked] = useState<Set<string>>(new Set())
+    const [editing, setEditing] = useState<Editing | null>(null)
+    const [over, setOver] = useState<string | null>(null)
+    const [dragging, setDragging] = useState<string | null>(null)
+    const menu = useDropdownTrigger()
+    const dragId = useRef<string | null>(null)
+    const lastPick = useRef<string | null>(null)
+    const refocus = useRef<string | null>(null)
+
+    const file = data?.file
+    const groups = useMemo(() => (file ? groupItems(file, filters) : []), [file, filters])
+    const visible = groups.flatMap((g) => g.items)
+
+    // A keyboard move re-inserts the row, which drops focus: put it back.
+    useEffect(() => {
+        const moved = refocus.current
+        if (!moved) return
+        refocus.current = null
+        document.querySelector<HTMLElement>(`[data-item-id="${moved}"] .itemRowToggle`)?.focus()
+    }, [file])
+
+    if (!data || !file) {
+        if (error) return <ErrorState className="uiContentContainer" message={error} onRetry={reload} />
+        return <ProjectSkeleton />
+    }
+
+    const pickedItems = file.items.filter((i) => picked.has(i.id))
+
+    const copy = async (items: Item[]) => {
+        try {
+            await navigator.clipboard.writeText(formatForAgent(items))
+            toast.success(items.length === 1 ? `Copied ${items[0].id}` : `Copied ${items.length} items`)
+        } catch {
+            toast.error("Could not copy: the clipboard is not available")
+        }
+    }
+
+    const items: ItemActions = {
+        edit: (item) => setEditing({ item }),
+        phase: (item, phase) => run({ op: "edit", id: item.id, patch: { phase } }),
+        status: (item, status) => run({ op: "edit", id: item.id, patch: { status } }),
+        done: async (item) => {
+            const note = await promptText({ title: `Mark "${item.title}" done`, placeholder: "Note (optional)", confirmLabel: "Mark done", required: false })
+            if (note !== null) run(note ? { op: "done", id: item.id, note } : { op: "done", id: item.id })
+        },
+        drop: async (item) => {
+            const reason = await promptText({
+                title: `Drop "${item.title}"`,
+                description: "Dropped items stay in the file with their reason, so nobody proposes them again.",
+                placeholder: "Reason",
+                confirmLabel: "Drop",
+            })
+            if (reason) run({ op: "drop", id: item.id, reason })
+        },
+        reopen: (item) => run({ op: "reopen", id: item.id }),
+        move: (item, dir) => {
+            const other = neighbor(groups, item, dir)
+            if (!other) return
+            refocus.current = item.id
+            run(dir === "up" ? { op: "move", id: item.id, before: other.id } : { op: "move", id: item.id, after: other.id })
+        },
+        copy,
+        remove: async (item) => {
+            const ok = await confirmAction({
+                message: `Delete "${item.title}"?`,
+                description: "Delete removes it for good. Drop keeps it with a reason.",
+                confirmLabel: "Delete",
+                variant: "destructive",
+            })
+            if (ok) run({ op: "delete", id: item.id })
+        },
+    }
+
+    const sectionAt = (s: Section, step: number) => file.sections[file.sections.indexOf(s) + step]
+    const sections: SectionActions = {
+        addItem: (s) => setEditing({ section: s.n }),
+        rename: async (s) => {
+            const title = await promptText({ title: `Rename §${s.n}`, initialValue: s.title, placeholder: "Section title", confirmLabel: "Rename" })
+            if (title && title !== s.title) run({ op: "renameSection", n: s.n, title })
+        },
+        move: (s, dir) => {
+            if (!sectionAt(s, dir === "up" ? -1 : 1)) return
+            run({ op: "moveSection", n: s.n, before: dir === "up" ? sectionAt(s, -1).n : (sectionAt(s, 2)?.n ?? null) })
+        },
+        remove: async (s) => {
+            const ok = await confirmAction({ message: `Delete section "${s.title}"?`, confirmLabel: "Delete", variant: "destructive" })
+            if (ok) run({ op: "deleteSection", n: s.n })
+        },
+    }
+
+    const addSection = async () => {
+        const title = await promptText({ title: "New section", placeholder: "Section title", confirmLabel: "Add section" })
+        if (title) run({ op: "addSection", title })
+    }
+
+    const entriesFor = (item: Item) => itemMenu(item, items, { up: !!neighbor(groups, item, "up"), down: !!neighbor(groups, item, "down") })
+    const sectionEntries = (s: Section) =>
+        sectionMenu(s, sections, { up: !!sectionAt(s, -1), down: !!sectionAt(s, 1), delete: !file.items.some((i) => i.section === s.n) })
+
+    const endDrag = () => {
+        dragId.current = null
+        setDragging(null)
+        setOver(null)
+    }
+
+    const rowApi: RowApi = {
+        projectId: id,
+        toggle: (itemId) => setExpanded((s) => toggled(s, [itemId], !s.has(itemId))),
+        select: (itemId, shift) => {
+            const order = visible.map((i) => i.id)
+            const from = shift && lastPick.current ? order.indexOf(lastPick.current) : -1
+            const to = order.indexOf(itemId)
+            const ids = from >= 0 && to >= 0 ? order.slice(Math.min(from, to), Math.max(from, to) + 1) : [itemId]
+            const on = !picked.has(itemId)
+            lastPick.current = itemId
+            setPicked((s) => toggled(s, ids, on))
+        },
+        menuAt: (item, e) => menu.openFromEvent(e, entriesFor(item)),
+        menuFrom: (item, el) => menu.openFromElement(el, entriesFor(item)),
+        nudge: (item, dir) => items.move(item, dir),
+        dragStart: (item, e: DragEvent) => {
+            dragId.current = item.id
+            setDragging(item.id)
+            e.dataTransfer?.setData("text/plain", item.id)
+            if (e.dataTransfer) e.dataTransfer.effectAllowed = "move"
+            const row = (e.currentTarget as Element).closest("li")
+            if (row) e.dataTransfer?.setDragImage?.(row, 16, 16)
+        },
+        dragEnd: endDrag,
+        dragOver: (key, e) => {
+            if (!dragId.current) return
+            e.preventDefault()
+            e.stopPropagation()
+            if (e.dataTransfer) e.dataTransfer.dropEffect = "move"
+            if (over !== key) setOver(key)
+        },
+        dropOn: (target, e) => {
+            const moving = dragId.current
+            if (!moving) return
+            e.preventDefault()
+            e.stopPropagation()
+            endDrag()
+            if ("before" in target && target.before === moving) return
+            run({ op: "move", id: moving, ...target })
+        },
+    }
+
+    return (
+        <section className="projectPageContainer outfit">
+            <header className="uiContentContainer projectHeader">
+                <div className="projectHeaderText">
+                    <span className="heading font-bold truncate">{data.id}</span>
+                    <span className="Inconsolata caption-small op-50 truncate" title={data.path}>
+                        {data.path}
+                    </span>
+                    {file.purpose && <span className="caption op-80">{file.purpose}</span>}
+                </div>
+                <div className="projectActions">
+                    <Button variant="secondary" imgProps={{ img: "iconify:add" }} onClick={addSection}>
+                        Add section
+                    </Button>
+                    <Button variant="primary" imgProps={{ img: "iconify:add" }} disabled={!file.sections.length} onClick={() => setEditing({})}>
+                        Add item
+                    </Button>
+                </div>
+            </header>
+
+            {file.traps.length > 0 && <TrapsPanel traps={file.traps} />}
+
+            <FilterBar file={file} filters={filters} onChange={setFilters} />
+
+            {groups.map((g) => (
+                <SectionBlock
+                    key={g.section.n}
+                    group={g}
+                    over={over === `section:${g.section.n}`}
+                    pinned={dragging}
+                    api={rowApi}
+                    onMenuAt={(e) => menu.openFromEvent(e, sectionEntries(g.section))}
+                    onMenuFrom={(el) => menu.openFromElement(el, sectionEntries(g.section))}
+                    renderRow={(item, measure, hidden) => (
+                        <ItemRow
+                            key={item.id}
+                            ref={measure}
+                            hidden={hidden}
+                            item={item}
+                            expanded={expanded.has(item.id)}
+                            selected={picked.has(item.id)}
+                            dropBefore={over === item.id}
+                            api={rowApi}
+                        />
+                    )}
+                />
+            ))}
+
+            {!file.sections.length && <EmptyState className="uiContentContainer" message="No sections yet. Add one to start." />}
+            {file.sections.length > 0 && !groups.length && (
+                <EmptyState
+                    className="uiContentContainer"
+                    message="Nothing matches these filters."
+                    action={
+                        <Button variant="secondary" onClick={() => setFilters(NO_FILTERS)}>
+                            Clear filters
+                        </Button>
+                    }
+                />
+            )}
+
+            {pickedItems.length > 0 && (
+                <SelectionBar count={pickedItems.length} onExit={() => setPicked(new Set())}>
+                    <Button variant="primary" imgProps={{ img: "iconify:content-copy" }} onClick={() => copy(pickedItems)}>
+                        Copy
+                    </Button>
+                </SelectionBar>
+            )}
+
+            <Dropdown open={menu.open} anchor={menu.anchor} items={menu.items} onClose={menu.close} />
+            {editing && <ItemModal file={file} item={editing.item} section={editing.section} onClose={() => setEditing(null)} onSubmit={run} />}
+        </section>
+    )
+}
+
+function ProjectSkeleton() {
+    return (
+        <section className="projectPageContainer" aria-busy="true" aria-label="Loading project">
+            <div className="uiContentContainer projectHeader">
+                <div className="projectHeaderText">
+                    <span className="skeletonPulse skeletonBar" style={{ width: "40%", height: "2rem" }} />
+                    <span className="skeletonPulse skeletonBar" style={{ width: "70%" }} />
+                </div>
+            </div>
+            <div className="uiContentContainer sectionBlock">
+                {[80, 65, 72].map((w) => (
+                    <span key={w} className="skeletonPulse skeletonBar" style={{ width: `${w}%` }} />
+                ))}
+            </div>
+        </section>
+    )
+}

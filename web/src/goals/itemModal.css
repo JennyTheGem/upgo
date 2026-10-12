@@ -1,0 +1,57 @@
+.modalCard.itemModal {
+    max-width: 720px;
+}
+
+.itemForm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-md);
+    flex: 1;
+    min-height: 0;
+}
+
+/* The fields scroll; the header and the actions stay put. */
+.itemFormBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-md);
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 3px;
+    margin: -3px;
+}
+
+.itemFormRow {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--gap-sm);
+}
+
+.itemFormRow--two {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.itemFormActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--gap-sm);
+    flex-shrink: 0;
+}
+
+@media (max-width: 479px) {
+    .itemFormRow--two {
+        grid-template-columns: 1fr;
+    }
+
+    .itemFormActions button {
+        flex: 1 1 0;
+    }
+}
+
+@media (pointer: coarse) {
+    .itemFormActions button {
+        min-height: 44px;
+    }
+}
