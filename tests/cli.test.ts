@@ -113,6 +113,21 @@ describe("init", () => {
         const clash = await makeProject()
         fails(cli(["init", "--no-hooks"], { cwd: clash }), /`demo` is already registered/)
     })
+
+    it("creates nothing when the new project's id is taken, so a second try with --id works", async () => {
+        await registered()
+        const dir = tempDir()
+        fails(cli(["init", "--no-hooks", "--id", "demo"], { cwd: dir }), /`demo` is already registered/)
+        expect(existsSync(join(dir, GOALS))).toBe(false)
+        expect(ok(cli(["init", "--no-hooks", "--id", "other"], { cwd: dir }))).toMatch(/registered `other`/)
+    })
+
+    it("sets the purpose of an existing project under the lock", async () => {
+        const dir = await makeProject()
+        writeFileSync(join(dir, `${GOALS}.lock`), "someone")
+        fails(cli(["init", "--no-hooks", "--purpose", "New"], { cwd: dir }), /locked by another writer/)
+        expect(readGoals(dir).purpose).toBe("Demo project")
+    })
 })
 
 describe("reading", () => {
@@ -132,6 +147,9 @@ describe("reading", () => {
         expect(idsOf(ok(cli(["list", "--search", "ALPHA BODY"], { cwd })))).toEqual(["alpha"])
         expect(idsOf(ok(cli(["list", "--search", "src/a.ts"], { cwd })))).toEqual(["alpha"])
         expect(ok(cli(["list", "--search", "zzz"], { cwd }))).toBe("no matching items\n")
+        // Field names are not content: every item has a `status` key.
+        expect(ok(cli(["list", "--search", "status"], { cwd }))).toBe("no matching items\n")
+        expect(ok(cli(["list", "--search", "files"], { cwd }))).toBe("no matching items\n")
         fails(cli(["list", "--phase", "soon"], { cwd }), /--phase must be one of/)
         fails(cli(["list", "--section", "x"], { cwd }), /whole number/)
     })

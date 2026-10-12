@@ -77,6 +77,17 @@ describe("store", () => {
         expect(calls).toBe(3)
     })
 
+    it("says goals.json was saved when only goals.md fails, so nobody retries the change", async () => {
+        const dir = await makeProject()
+        const real = fsp.rename.bind(fsp)
+        vi.spyOn(fsp, "rename").mockImplementation(async (a, b) => {
+            if (String(b).endsWith(MD)) throw Object.assign(new Error("disk gone"), { code: "EIO" })
+            return real(a, b)
+        })
+        await expect(updateGoals(dir, (f) => ({ ...f, purpose: "Saved" }))).rejects.toThrow(/goals.json was saved.*upgo render/s)
+        expect(readGoals(dir).purpose).toBe("Saved")
+    })
+
     it("a held lock blocks a second writer until released", async () => {
         const target = join(tempDir(), "f")
         const order: string[] = []
@@ -115,6 +126,12 @@ describe("store", () => {
             }),
         ).rejects.toThrow("boom")
         expect(existsSync(join(dir, `${GOALS}.lock`))).toBe(false)
+    })
+
+    it("a lockfile Windows will not delete yet does not turn a saved change into a failure", async () => {
+        const target = join(tempDir(), "f")
+        vi.spyOn(fsp, "rm").mockRejectedValue(Object.assign(new Error("busy"), { code: "EPERM" }))
+        await expect(withLock(target, async () => "saved")).resolves.toBe("saved")
     })
 
     it("every update re-renders goals.md", async () => {

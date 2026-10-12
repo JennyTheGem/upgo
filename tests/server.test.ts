@@ -120,8 +120,16 @@ describe("writing", () => {
         expect((await post(op, { "Content-Type": "text/plain" })).status).toBe(415)
         expect((await post(op, { Origin: "https://evil.example" })).status).toBe(403)
         expect((await post(op, { Origin: `http://127.0.0.1:${server.port}` })).status).toBe(200)
-        expect((await post({ op: "reopen", id: "alpha" }, { Origin: "http://localhost:5173" })).status).toBe(200)
-        expect(readGoals(project).items[0].status).toBe("planned")
+        expect((await post({ op: "reopen", id: "alpha" }, { Origin: "http://localhost:5173" })).status).toBe(403)
+        expect(readGoals(project).items[0].status).toBe("done")
+    })
+
+    it("trusts the Vite dev port only in dev mode", async () => {
+        expect((await req("/api/projects", { headers: { Host: "localhost:5173" } })).status).toBe(403)
+        await server.close()
+        server = await startServer({ port: 0, staticDir, dev: true })
+        expect((await req("/api/projects", { headers: { Host: "localhost:5173" } })).status).toBe(200)
+        expect((await post({ op: "done", id: "alpha" }, { Origin: "http://localhost:5173" })).status).toBe(200)
     })
 
     it("rejects bad bodies with readable errors and leaves the file alone", async () => {

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { openMenu, pick, row, rowIds, setup, toggleOf, waitForRows } from "./helpers.tsx"
 
 afterEach(() => {
@@ -202,6 +202,24 @@ describe("row actions", () => {
         await pick(user, "Phase", "now")
         expect(await screen.findByRole("alert")).toHaveTextContent("goals.json is locked by another writer")
         await waitFor(() => expect(chips("queue-snapshots")).toEqual(["way later"]))
+    })
+
+    it("a late failure does not undo a later change that already landed", async () => {
+        const { user, server } = await setup()
+        await waitForRows()
+        let fail!: () => void
+        server.fetch.mockImplementationOnce(
+            () => new Promise((r) => (fail = () => r({ ok: false, status: 400, statusText: "", json: async () => ({ error: "locked" }) }))),
+        )
+        await openMenu(user, "Queue snapshots")
+        await pick(user, "Phase", "now")
+        await openMenu(user, "Smart playlists")
+        await pick(user, "Phase", "maybe")
+        await waitFor(() => expect(chips("smart-playlists")[0]).toBe("maybe"))
+        await act(async () => fail())
+        expect(await screen.findByRole("alert")).toHaveTextContent("locked")
+        await waitFor(() => expect(chips("queue-snapshots")).toEqual(["way later"]))
+        expect(chips("smart-playlists")[0]).toBe("maybe")
     })
 })
 

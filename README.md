@@ -28,5 +28,5 @@ npm test          # everything (vitest)
 npm run typecheck
 npm run lint
 npm run build     # dashboard into web/dist
-npm run dev       # dashboard dev server, with `upgo ui --no-open` running for the API
+npm run dev       # dashboard dev server, with `UPGO_DEV=1 upgo ui --no-open` running for the API
 ```

@@ -69,8 +69,11 @@ describe("virtualized rows", () => {
 
     it("keeps a dragged row in the DOM, hidden, after it scrolls away", async () => {
         await open()
-        fireEvent.dragStart(row("item-0").querySelector(".itemDrag")!)
+        const handle = row("item-0").querySelector(".itemDrag")!
+        fireEvent.dragStart(handle)
         scrollTo(10_000)
+        // The same node, or the browser loses the drag's dragend.
+        expect(handle.isConnected).toBe(true)
         expect(row("item-0")).toBeInTheDocument()
         expect(row("item-0")).not.toBeVisible()
         expect(rowIds().length).toBeLessThan(60)

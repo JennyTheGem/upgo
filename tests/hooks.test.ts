@@ -1,8 +1,8 @@
 import { execFileSync, spawnSync } from "node:child_process"
-import { mkdirSync, writeFileSync } from "node:fs"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { cli } from "./cliHarness.ts"
-import { isolateRegistry, makeProject, tempDir } from "./helpers.ts"
+import { fixture, isolateRegistry, makeProject, tempDir } from "./helpers.ts"
 
 beforeEach(() => isolateRegistry())
 
@@ -32,10 +32,14 @@ describe("Claude PreToolUse hook", () => {
         const dir = await makeProject()
         const legacy = tempDir()
         writeFileSync(join(legacy, "goals.md"), "# not migrated yet")
+        const foreign = tempDir()
+        writeFileSync(join(foreign, "goals.json"), JSON.stringify({ goals: ["run a marathon"] }))
         for (const input of [
             hookInput("Edit", { file_path: join(dir, "src", "app.ts") }),
             hookInput("Edit", { file_path: join(dir, "goals-completed.md") }),
             hookInput("Write", { file_path: join(legacy, "goals.md") }),
+            hookInput("Edit", { file_path: join(foreign, "goals.json") }),
+            hookInput("Write", { file_path: join(foreign, "goals.md") }),
             hookInput("NotebookEdit", { notebook_path: join(dir, "n.ipynb") }),
             hookInput("Bash", { command: "ls" }),
             "not json",
@@ -84,5 +88,30 @@ describe("git pre-commit hook", () => {
         writeFileSync(join(sub, "goals.json"), "{")
         git(repo, "add", "-A")
         expect(git(repo, "commit", "-q", "-m", "broken").status).not.toBe(0)
+    })
+
+    it("checks every project of a repo that holds several", async () => {
+        const repo = tempDir()
+        execFileSync("git", ["init", "-q", "."], { cwd: repo })
+        const [a, b] = ["a", "b"].map((name) => join(repo, "packages", name))
+        await makeProject({ ...fixture(), project: "pkg-a" }, (mkdirSync(a, { recursive: true }), a))
+        await makeProject({ ...fixture(), project: "pkg-b" }, (mkdirSync(b, { recursive: true }), b))
+        expect(cli(["init"], { cwd: a }).code).toBe(0)
+        expect(cli(["init"], { cwd: b }).out).toMatch(/git hook: installed/)
+        writeFileSync(join(b, "goals.json"), "{")
+        git(repo, "add", "-A")
+        expect(git(repo, "commit", "-q", "-m", "broken").status).not.toBe(0)
+    })
+
+    it("leaves a pre-commit hook in another language alone", () => {
+        const dir = tempDir()
+        execFileSync("git", ["init", "-q", "."], { cwd: dir })
+        const path = join(dir, ".git", "hooks", "pre-commit")
+        const mine = "#!/usr/bin/env node\nconsole.log('mine')\n"
+        writeFileSync(path, mine)
+        const r = cli(["init"], { cwd: dir })
+        expect(r.code).toBe(0)
+        expect(r.out).toMatch(/git hook: skipped .*not a shell script/)
+        expect(readFileSync(path, "utf8")).toBe(mine)
     })
 })

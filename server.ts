@@ -8,7 +8,7 @@ import { formatIssues, isOpen } from "./src/core/schema.ts"
 import { GOALS, readGoals, updateGoals } from "./src/core/store.ts"
 import { today, UpgoError } from "./src/core/util.ts"
 
-export type ServerOptions = { port?: number; staticDir?: string }
+export type ServerOptions = { port?: number; staticDir?: string; dev?: boolean }
 export type RunningServer = { url: string; port: number; close: () => Promise<void> }
 
 const HOST = "127.0.0.1"
@@ -63,8 +63,10 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
     const timers = new Map<string, NodeJS.Timeout>()
     let port = opts.port ?? 4141
 
-    // Only our own host names, so a DNS-rebinding page cannot reach the API; 5173 is the Vite dev proxy.
-    const authorities = () => [port, DEV_PORT].flatMap((p) => [`127.0.0.1:${p}`, `localhost:${p}`])
+    // Only our own host names, so a DNS-rebinding page cannot reach the API. The Vite dev proxy (5173, also
+    // every other Vite app's default) only with UPGO_DEV=1.
+    const dev = opts.dev ?? process.env.UPGO_DEV === "1"
+    const authorities = () => (dev ? [port, DEV_PORT] : [port]).flatMap((p) => [`127.0.0.1:${p}`, `localhost:${p}`])
 
     const broadcast = (event: string, data: unknown) => {
         for (const res of clients) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
