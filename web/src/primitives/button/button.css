@@ -1,0 +1,139 @@
+.defaultButton {
+    display: flex;
+    flex-direction: row;
+    gap: var(--gap-sm);
+    justify-content: center;
+    align-items: center;
+    padding: var(--padding-md);
+    box-sizing: border-box;
+    border-radius: var(--radius-sm);
+    opacity: .8;
+    transition-property: filter, opacity, transform, background-color;
+    transition-duration: var(--duration-fast);
+    transition-timing-function: var(--ease-default);
+    user-select: none;
+
+    img {
+        aspect-ratio: 1 / 1;
+        height: 1rem;
+    }
+
+    &:hover {
+        filter: brightness(120%);
+        opacity: 1;
+    }
+
+    &:active {
+        transform: scale(.9);
+    }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px var(--color-focus-ring);
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        filter: grayscale(100%);
+        opacity: .5;
+        transform: none;
+    }
+}
+
+.buttonPrimary {
+    background-color: var(--color-accent);
+}
+
+.buttonSecondary {
+    background-color: rgba(0, 0, 0, 0.119);
+    border: 2px solid var(--color-accent);
+}
+
+.buttonDestructive {
+    background-color: transparent;
+    border: 1px var(--color-danger) solid;
+
+    &:hover {
+        background-color: var(--color-danger);
+    }
+}
+
+.buttonIcon {
+    aspect-ratio: 1 / 1;
+    background-color: transparent;
+    border: none;
+    padding: unset !important;
+    box-sizing: border-box;
+    height: 20px;
+
+    img {
+        aspect-ratio: 1 / 1;
+        height: 20px;
+    }
+}
+
+/* Touch: the glyph stays small, the tappable area grows to 44px. */
+@media (pointer: coarse) {
+    .buttonIcon {
+        min-width: 44px;
+        min-height: 44px;
+        height: auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .buttonSwitcherOption {
+        min-height: 44px;
+    }
+}
+
+.buttonSwitcherOption {
+    background: var(--fill-subtle);
+    border: 2px solid var(--color-border-subtle-hover);
+    padding: var(--padding-xs) var(--padding-md);
+    font-size: var(--text-control);
+    font-weight: normal;
+}
+
+.buttonSwitcherOption:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--color-accent-solid) 60%, transparent);
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.buttonSwitcherOption--active {
+    border: 2px solid var(--color-success);
+    opacity: 1;
+}
+
+.textHyperLink {
+    opacity: .5;
+    transition: color var(--duration-fast) var(--ease-default),
+                opacity var(--duration-fast) var(--ease-default);
+    padding: 0;
+    justify-content: flex-start;
+
+    &:hover {
+        color: var(--color-white);
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.textHyperLink--inline {
+    display: inline-flex;
+    width: auto;
+    opacity: 1;
+    color: var(--color-accent-solid);
+    font-weight: 600;
+
+    &:hover {
+        opacity: .8;
+        color: var(--color-accent-solid);
+    }
+}
+
+html[data-reduce-motion] .defaultButton:active {
+    transform: none;
+}

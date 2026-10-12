@@ -1,0 +1,60 @@
+.modalBackdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--color-scrim);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--padding-md);
+    padding-top: max(var(--padding-md), var(--safe-top));
+    padding-bottom: max(var(--padding-md), var(--safe-bottom));
+    box-sizing: border-box;
+}
+
+.modalCard {
+    width: 100%;
+    max-width: 640px;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-md);
+    padding: var(--padding-lg);
+    box-sizing: border-box;
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-lg);
+    animation: modalEnter var(--duration-medium) var(--ease-bounce-soft) both;
+}
+
+@keyframes modalEnter {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.94);
+    }
+}
+
+.modalHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--gap-sm);
+    flex-shrink: 0;
+}
+
+.modalTitle {
+    margin: 0;
+    color: var(--color-white);
+}
+
+.modalClose { flex-shrink: 0; }
+
+@media (max-width: 479px) {
+    .modalCard {
+        padding: var(--padding-md);
+        border-radius: var(--radius-md);
+    }
+}
+
+html[data-reduce-motion] .modalCard {
+    animation: none;
+}

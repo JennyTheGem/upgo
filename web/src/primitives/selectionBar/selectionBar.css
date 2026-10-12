@@ -1,0 +1,28 @@
+/* Sticks to the bottom of the scrolling view it sits in. */
+.selectionBar {
+    position: sticky;
+    bottom: calc(var(--padding-md) + var(--safe-bottom));
+    align-self: center;
+    max-width: calc(100% - 2 * var(--padding-md));
+    animation: selectionBarIn var(--duration-default) var(--ease-out);
+}
+
+@keyframes selectionBarIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+}
+
+html[data-reduce-motion] .selectionBar { animation: none; }
+
+.selectionBar .selectionBarContent {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--gap-sm);
+    padding: var(--padding-sm) var(--padding-md);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}

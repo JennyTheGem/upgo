@@ -1,0 +1,69 @@
+.searchInputField {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    min-height: 44px;
+    padding: var(--padding-sm) var(--padding-md);
+    box-sizing: border-box;
+    border-radius: var(--radius-sm);
+    cursor: text;
+    transition:
+        border-color var(--duration-fast) var(--ease-default),
+        box-shadow var(--duration-fast) var(--ease-default);
+}
+
+/* Inside a surface: control fill, not a nested card. */
+.searchInputField--flat {
+    background-color: var(--fill-subtle);
+    border: 1px solid var(--color-border-subtle);
+}
+
+.searchInputField--flat:hover {
+    background-color: var(--fill-subtle-hover);
+}
+
+.searchInputField:focus-within {
+    border-color: var(--color-accent-solid);
+}
+
+.searchInputIcon {
+    height: 1.1rem;
+    opacity: .6;
+    flex-shrink: 0;
+}
+
+.searchInputField__input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--color-white);
+    font-family: inherit;
+    font-size: .95rem;
+}
+
+/* 16px floor: iOS zooms on focus below it. */
+@media (pointer: coarse) {
+    .searchInputField__input { font-size: max(16px, .95rem); }
+}
+
+.searchInputField__input::placeholder {
+    color: var(--color-white);
+    opacity: .4;
+}
+
+.searchInputClear {
+    flex-shrink: 0;
+    opacity: .6;
+    transition: opacity var(--duration-fast) var(--ease-default);
+}
+
+.searchInputClear:hover {
+    opacity: 1;
+}
+
+html[data-reduce-motion] .searchInputField,
+html[data-reduce-motion] .searchInputClear {
+    transition: none;
+}

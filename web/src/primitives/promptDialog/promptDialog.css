@@ -1,0 +1,61 @@
+/* A title, a field and a button row tall: one radius step down from the one-line pill. */
+.dialogPill.promptPill { border-radius: var(--radius-lg); }
+
+@media (max-width: 479px) {
+    .dialogPill.promptPill { border-radius: var(--radius-md); }
+}
+
+.promptForm {
+    flex: 1 1 100%;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--gap-sm);
+    min-width: min(320px, 100%);
+}
+
+/* House input pattern: the wrapper carries the surface and the focus state. */
+.promptField {
+    flex: 1 1 200px;
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    box-sizing: border-box;
+    cursor: text;
+    background-color: var(--fill-subtle);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    padding: var(--padding-sm) var(--padding-md);
+    transition: border-color var(--duration-fast) var(--ease-default),
+                background-color var(--duration-fast) var(--ease-default);
+}
+
+.promptField:hover {
+    background-color: var(--fill-subtle-hover);
+    border-color: var(--color-border-subtle-hover);
+}
+
+.promptField:focus-within { border-color: var(--color-accent-solid); }
+
+.promptInput {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--color-white);
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.promptInput::placeholder {
+    color: var(--color-white);
+    font-weight: 400;
+    opacity: 0.4;
+}
+
+@media (pointer: coarse) {
+    .promptInput { font-size: max(16px, 1rem); }
+}
+
+html[data-reduce-motion] .promptField { transition: none; }

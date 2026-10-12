@@ -1,0 +1,97 @@
+.dropdownBackdrop {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    pointer-events: none; /* closing is a document pointerdown listener */
+}
+
+.dropdownPanel {
+    position: fixed;
+    min-width: 200px;
+    max-width: min(280px, 92vw);
+    padding: var(--padding-2xs) 0 !important;
+    max-height: calc(100dvh - var(--gap-lg));
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-sm) !important;
+    box-sizing: border-box;
+    overflow: hidden auto !important;
+    overscroll-behavior: contain;
+    pointer-events: auto;
+    --surface-filter: var(--panel-surface) !important;
+}
+
+.dropdownList {
+    display: flex;
+    flex-direction: column;
+}
+
+.dropdownLabel {
+    padding: var(--padding-xs) var(--padding-md);
+    letter-spacing: 0.05em;
+}
+
+.dropdownDivider {
+    height: var(--gap-sm);
+}
+
+.dropdownItem {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    width: 100%;
+    min-height: 44px;
+    padding: var(--padding-xs) var(--padding-md);
+    box-sizing: border-box;
+    text-align: left;
+    cursor: pointer;
+}
+
+.dropdownItem:hover,
+.dropdownItem:focus-visible {
+    background-color: var(--color-accent);
+}
+
+.dropdownItem:focus-visible {
+    outline: none;
+}
+
+.dropdownItem.deactive {
+    cursor: not-allowed;
+}
+
+.dropdownItemDanger {
+    color: var(--color-danger);
+}
+
+/* Current selection: accent fill + accent-solid left bar. */
+.dropdownItemActive {
+    background-color: var(--color-accent);
+    box-shadow: inset 2px 0 0 var(--color-accent-solid);
+}
+
+.dropdownItemActive:hover,
+.dropdownItemActive:focus-visible {
+    background-color: color-mix(in srgb, var(--color-accent-solid) 22%, transparent);
+}
+
+.dropdownItemIcon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+}
+
+.dropdownItemLabel {
+    flex: 1;
+    min-width: 0;
+}
+
+.dropdownItemChevron {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    opacity: .6;
+}
+
+.dropdownBackRow {
+    border-bottom: 1px solid var(--color-border);
+}
