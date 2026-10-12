@@ -44,13 +44,19 @@ export function findEntryByPath(path: string): Entry | undefined {
     return readRegistry().find((e) => samePath(e.path, path))
 }
 
+// Throws if `id` at `path` clashes with another registration; returns the entry when it is this one already.
+export function checkRegistrable(id: string, path: string, entries = readRegistry()): Entry | undefined {
+    const byId = entries.find((e) => e.id === id)
+    if (byId && !samePath(byId.path, path)) throw new UpgoError(`project id \`${id}\` is already registered for ${byId.path}`)
+    const byPath = entries.find((e) => samePath(e.path, path))
+    if (byPath && byPath.id !== id) throw new UpgoError(`${path} is already registered as \`${byPath.id}\``)
+    return byId
+}
+
 export async function register(id: string, path: string): Promise<Entry> {
     return withLock(registryPath(), async () => {
         const entries = readRegistry()
-        const byId = entries.find((e) => e.id === id)
-        if (byId && !samePath(byId.path, path)) throw new UpgoError(`project id \`${id}\` is already registered for ${byId.path}`)
-        const byPath = entries.find((e) => samePath(e.path, path))
-        if (byPath && byPath.id !== id) throw new UpgoError(`${path} is already registered as \`${byPath.id}\``)
+        const byId = checkRegistrable(id, path, entries)
         if (byId) return byId
         const entry = { id, path: resolve(path) }
         await writeRegistry([...entries, entry])

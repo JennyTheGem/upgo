@@ -112,4 +112,9 @@ describe("checkProject", () => {
         rmSync(join(clean, MD))
         expect(checkProject(clean, [])).toEqual(["goals.md is missing, run `upgo render`"])
     })
+
+    it("stays in sync when the purpose was given with CRLF line breaks", async () => {
+        const dir = await makeProject({ ...fixture(), purpose: "First line\r\nsecond line" })
+        expect(checkProject(dir, [])).toEqual([])
+    })
 })

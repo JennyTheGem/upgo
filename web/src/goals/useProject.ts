@@ -42,12 +42,16 @@ export function useProject(id: string, onChanged: () => void) {
                 onChanged()
                 return true
             } catch (e) {
-                if (guess) setData((d) => d && { ...d, file: before.file })
+                // Only undo our own guess: a later op may have landed since. The reload settles the rest.
+                if (guess) {
+                    setData((d) => (d && d.file === guess ? { ...d, file: before.file } : d))
+                    reload()
+                }
                 toast.error(errorText(e))
                 return false
             }
         },
-        [id, onChanged],
+        [id, onChanged, reload],
     )
 
     return { data, error, reload, run }

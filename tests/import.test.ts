@@ -39,6 +39,12 @@ describe("importMarkdown: sections", () => {
         const { file } = run(md("# T", "", "Legend: ✅ · 🚧", "", "- ✅ preamble bullet", "", "## 1. A", "- [ ] Kept", "", "---", "", "- [ ] After the rule"))
         expect(file.items.map((i) => i.title)).toEqual(["Kept"])
     })
+
+    it("reports what it ignores after a rule and under a trap heading", () => {
+        const { file, report } = run(md("### Traps", "", "Read these first.", "", "- **Real trap** body", "", "## 1. A", "- [ ] Kept", "", "---", "", "- [ ] After the rule"))
+        expect(file.traps.map((t) => t.title)).toEqual(["Real trap"])
+        expect(report.skipped).toEqual(["Read these first.", "- [ ] After the rule"])
+    })
 })
 
 describe("importMarkdown: traps", () => {

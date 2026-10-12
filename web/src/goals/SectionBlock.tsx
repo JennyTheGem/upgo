@@ -48,17 +48,19 @@ export default function SectionBlock({ group, over, pinned, api, onMenuAt, onMen
 }
 
 // The pinned row (a drag source) stays in the DOM, hidden, when it scrolls out: removing it would lose its dragend.
+// One keyed list, so React moves that node rather than remounting it.
 function ItemList({ items, pinned, renderRow }: { items: Item[]; pinned: string | null; renderRow: RenderRow }) {
     const { listRef, measure, start, end, padTop, padBottom } = useVirtualRows(
         items.map((i) => i.id),
         ROW_ESTIMATE,
     )
     const p = pinned ? items.findIndex((i) => i.id === pinned) : -1
+    const rows = items.slice(start, end)
+    const away = p >= 0 && (p < start || p >= end) ? items[p] : undefined
+    const all = !away ? rows : p < start ? [away, ...rows] : [...rows, away]
     return (
         <ul ref={listRef} className="itemList" style={{ paddingTop: padTop, paddingBottom: padBottom }}>
-            {p >= 0 && p < start && renderRow(items[p], undefined, true)}
-            {items.slice(start, end).map((item) => renderRow(item, measure))}
-            {p >= end && renderRow(items[p], undefined, true)}
+            {all.map((item) => (item === away ? renderRow(item, undefined, true) : renderRow(item, measure)))}
         </ul>
     )
 }

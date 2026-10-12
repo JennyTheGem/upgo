@@ -18,7 +18,8 @@ export function render(file: GoalsFile): string {
     const closed = file.sections.filter((s) => !live.includes(s))
 
     const out = [`# ${file.project}: goals`, "", GENERATED_MARK, ""]
-    if (file.purpose?.trim()) out.push(file.purpose.trim(), "")
+    // LF only: `upgo check` compares against goals.md read back with CRLF normalized.
+    if (file.purpose?.trim()) out.push(file.purpose.trim().replace(/\r\n?/g, "\n"), "")
     out.push(
         "Open work only. Full item: `upgo show <id>`. Any slice: `upgo list --phase later,wayLater,maybe`, `--status done,dropped`, `--section <n>`, `--search <text>`.",
         "",

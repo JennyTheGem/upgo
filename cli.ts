@@ -6,13 +6,15 @@ import { basename, dirname, join, relative, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 import { checkProject } from "./src/core/check.ts"
 import * as m from "./src/core/mutate.ts"
-import { findEntry, forget, readRegistry, register, UPGO_DIR } from "./src/core/registry.ts"
-import { isOpen, PHASE_LABEL, PHASES, POINTER_KEYS, SIZES, STATUSES, type GoalsFile, type Item, type Pointers } from "./src/core/schema.ts"
+import { checkRegistrable, findEntry, forget, readRegistry, register, UPGO_DIR } from "./src/core/registry.ts"
+import { isOpen, PHASE_LABEL, PHASES, POINTER_KEYS, SCHEMA_URL, SIZES, STATUSES, type GoalsFile, type Item, type Pointers } from "./src/core/schema.ts"
 import { findProjectDir, GOALS, MD, readGoals, saveGoals, serialize, updateGoals, writeAtomic } from "./src/core/store.ts"
 import { slugify, today, UpgoError } from "./src/core/util.ts"
 
 const CLI = `${UPGO_DIR.replace(/\\/g, "/")}/cli.ts`
 const HOOK_MARK = "upgo"
+// A shebang naming a POSIX-ish shell, directly or through env.
+const SHELL = /^#!\s*(?:\S*\/)?(?:env\s+(?:-\S+\s+)*)?(?:\S*\/)?(?:sh|bash|dash|zsh|ksh)(?:\s|$)/
 
 const HELP = `upgo: structured goals for this project. Never edit goals.json or goals.md by hand.
 
@@ -90,6 +92,9 @@ function int(name: string, value: string | undefined): number | undefined {
 }
 
 const csv = (value: string | undefined) => value?.split(",").map((v) => v.trim()).filter(Boolean)
+
+// Values only, so searching for a field name like `status` does not match every item.
+const valuesText = (v: unknown): string => (v && typeof v === "object" ? Object.values(v).map(valuesText).join("\n") : String(v))
 
 function need<T>(value: T | undefined, what: string): T {
     if (value === undefined || value === "") throw new UpgoError(`missing ${what} (see \`upgo help\`)`)
@@ -183,11 +188,13 @@ async function installGitHook(dir: string): Promise<string> {
     const line = `node "${CLI}" check --dir "${rel}" || exit 1`
     const block = `# ${HOOK_MARK}: refuse a commit with an invalid goals.json\n${line}\n`
     const existing = existsSync(path) ? readFileSync(path, "utf8") : null
-    if (existing?.includes(`# ${HOOK_MARK}:`)) return `git hook: already installed (${path})`
+    // Per project dir, so a second project in the same repo gets its own check.
+    if (existing?.includes(line)) return `git hook: already installed (${path})`
     let next: string
     if (existing === null) next = `#!/bin/sh\n${block}`
     else if (existing.startsWith("#!")) {
         const nl = existing.indexOf("\n")
+        if (!SHELL.test(nl < 0 ? existing : existing.slice(0, nl))) return `git hook: skipped (${path} is not a shell script; make it run \`${line}\`)`
         next = nl < 0 ? `${existing}\n${block}` : `${existing.slice(0, nl + 1)}${block}${existing.slice(nl + 1)}`
     } else next = `#!/bin/sh\n${block}${existing}`
     await fsp.mkdir(hooksDir, { recursive: true })
@@ -226,7 +233,9 @@ async function hook(io: Io): Promise<number> {
     if (typeof raw !== "string") return 0
     const path = resolve(input.cwd ?? process.cwd(), raw)
     const name = basename(path).toLowerCase()
-    if ((name === GOALS || name === MD) && existsSync(join(dirname(path), GOALS))) {
+    const goals = join(dirname(path), GOALS)
+    // Managed means upgo wrote that goals.json; another tool's file of the same name is not ours to guard.
+    if ((name === GOALS || name === MD) && existsSync(goals) && readFileSync(goals, "utf8").includes(SCHEMA_URL)) {
         io.err(`${name} is managed by upgo and must not be edited directly. Use the CLI: \`upgo add|edit|done|drop|move ...\` (\`upgo help\`).\n`)
         return 2
     }
@@ -254,9 +263,11 @@ async function run(argv: string[], io: Io): Promise<number> {
             if (existsSync(join(dir, GOALS))) {
                 file = readGoals(dir)
                 if (values.id && values.id !== file.project) throw new UpgoError(`goals.json already names this project \`${file.project}\``)
-                if (values.purpose) file = await saveGoals(dir, m.setPurpose(file, values.purpose))
+                if (values.purpose) file = await updateGoals(dir, (f) => m.setPurpose(f, values.purpose!))
             } else {
                 const id = values.id ?? slugify(basename(dir))
+                // Before anything is written, or a taken id leaves a goals.json that blocks the retry with --id.
+                checkRegistrable(id, dir)
                 file = await saveGoals(dir, { version: 1, project: id, ...(values.purpose ? { purpose: values.purpose } : {}), sections: [], traps: [], items: [] })
             }
             await register(file.project, dir)
@@ -278,7 +289,7 @@ async function run(argv: string[], io: Io): Promise<number> {
                     (statuses ? statuses.includes(i.status) : values.all || isOpen(i)) &&
                     (!phases || phases.includes(i.phase)) &&
                     (section === undefined || i.section === section) &&
-                    (!q || JSON.stringify(i).toLowerCase().includes(q)),
+                    (!q || valuesText(i).toLowerCase().includes(q)),
             )
             io.out(listText(file, items))
             return 0

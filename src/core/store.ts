@@ -91,7 +91,8 @@ export async function withLock<T>(target: string, fn: () => Promise<T>): Promise
     try {
         return await fn()
     } finally {
-        await fsp.rm(lock, { force: true })
+        // A throw here would report a finished write as failed; a leftover lock just goes stale.
+        await fsp.rm(lock, { force: true }).catch(() => {})
     }
 }
 
@@ -101,8 +102,14 @@ export async function saveGoals(dir: string, file: GoalsFile): Promise<GoalsFile
     const clean = parseGoals(JSON.parse(json))
     const issues = localIssues(clean)
     if (issues.length) throw new UpgoError("refusing to save an invalid goals.json:", issues)
+    const md = render(clean)
     await writeAtomic(join(dir, GOALS), json)
-    await writeAtomic(join(dir, MD), render(clean))
+    try {
+        await writeAtomic(join(dir, MD), md)
+    } catch (e) {
+        // The change is in; a caller that retried it would apply it twice.
+        throw new UpgoError(`goals.json was saved, but ${MD} could not be written (${(e as Error).message}): run \`upgo render\``)
+    }
     return clean
 }
 

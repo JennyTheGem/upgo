@@ -44,6 +44,7 @@ const trimStart = (s: string) => s.replace(/^[\s.,:;]+/, "")
 const tidy = (lines: string[]) => lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() || undefined
 const indentOf = (l: string) => l.length - l.trimStart().length
 const short = (s: string) => Array.from(s.trim()).slice(0, 60).join("")
+const shown = (b: Block) => short(b.kind === "bullet" ? `- ${b.lines[0].trim()}` : b.lines[0])
 const words = (s: string) => s.trim().split(/\s+/).length
 
 function scan(md: string): Entry[] {
@@ -387,9 +388,11 @@ export function importMarkdown(goalsMd: string, opts: { project: string; today: 
                 zone = base = "none"
                 continue
             }
-            if (zone === "traps") {
-                const t = e.kind === "bullet" ? buildTrap(e) : null
+            // Only traps are kept here; anything else is reported, never dropped silently.
+            if (zone === "traps" || zone === "none") {
+                const t = zone === "traps" && e.kind === "bullet" ? buildTrap(e) : null
                 if (t) traps.push(t)
+                else skipped.push(shown(e))
                 continue
             }
             if (zone === "pre" && !completed && e.kind === "para" && !purpose) {
@@ -416,7 +419,7 @@ export function importMarkdown(goalsMd: string, opts: { project: string; today: 
                 else if (d) {
                     drafts.push((last = d))
                     if (completed && e.kind === "para") parent = d
-                } else skipped.push(short(e.kind === "bullet" ? `- ${lead}` : lead))
+                } else skipped.push(shown(e))
             }
         }
     }
