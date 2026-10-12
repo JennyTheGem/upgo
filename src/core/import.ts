@@ -330,6 +330,7 @@ function continues(b: Block): boolean {
 
 // The block as markdown for a record's body: wrapped lines joined, sub-lists kept.
 function asMarkdown(b: Block): string {
+    if (b.kind === "table") return b.lines.join("\n")
     const { first, after } = split(b)
     if (b.kind === "para") return [first, ...after].join("\n")
     return [`- ${first}`, ...after.map((l) => (l ? `  ${l}` : l))].join("\n")
@@ -402,7 +403,10 @@ export function importMarkdown(goalsMd: string, opts: { project: string; today: 
             if (zone !== "sec") continue
 
             const lead = e.lines[0].trim()
-            if (e.kind === "table") skipped.push(short(lead))
+            if (e.kind === "table") {
+                if (parent) attach(parent, e)
+                else skipped.push(short(lead))
+            }
             else if (e.kind === "bullet" && lead.startsWith("↳")) {
                 // A top-level `- ↳ files:` belongs to the item above it.
                 if (!last) skipped.push(short(`- ${lead}`))

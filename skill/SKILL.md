@@ -27,6 +27,6 @@ When the user says "migrate goals" in a repo with a hand-written `goals.md`:
 2. Dry run outside the repo: `upgo import goals.md --out <scratchpad>/goals.json`. Read the report: open count matches the old file, sections and traps look right, nothing important in `skipped`.
 3. Ask the user about anything skipped or ambiguous before writing into the repo.
 4. In the repo: `upgo import goals.md`, then `upgo init` (registers it, installs the git and Claude hooks), `upgo render` (replaces `goals.md` with the generated one), `upgo check`.
-5. Delete `goals-completed.md` (its entries are now done and dropped items in `goals.json`). Keep `docs/goalsDetails/`.
+5. Delete `goals-completed.md` (its entries are now done and dropped items in `goals.json`) and reword references to "`goals-completed.md` §N" in docs, comments and open goals as "done goals §N". Keep `docs/goalsDetails/`.
 6. Replace the repo's roadmap rules in CLAUDE.md with one line: "Goals live in goals.json, managed by upgo; goals.md is generated and auto-loaded. Use the upgo CLI (see the upgo skill), never edit either file." Keep the `@goals.md` import.
 7. Summarize what changed. Commit only when asked.
