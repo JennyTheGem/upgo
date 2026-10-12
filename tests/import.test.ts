@@ -243,6 +243,8 @@ describe("importMarkdown: items", () => {
                 "",
                 "_(open, see `goals.md`)_",
                 "",
+                "### No record above",
+                "",
                 "| a | b |",
                 "|---|---|",
             ),
@@ -253,7 +255,7 @@ describe("importMarkdown: items", () => {
         expect(report.skipped).toEqual(["| a | b |"])
     })
 
-    it("folds a record's bullets and follow-on paragraphs into it, keeps dated and dropped ones apart, skips noise", () => {
+    it("folds a record's bullets, follow-on paragraphs and tables into it, keeps dated and dropped ones apart, skips noise", () => {
         const { file, report } = run(
             "",
             md(
@@ -270,6 +272,9 @@ describe("importMarkdown: items", () => {
                 "**Files** are two folders.",
                 "",
                 "More prose about the record.",
+                "",
+                "| a | b |",
+                "|---|---|",
                 "",
                 "- **Later fix (2026-08-01).** Its own record.",
                 "- **Closed 2026-07-10**: the X idea was dropped, not wanted.",
@@ -290,7 +295,7 @@ describe("importMarkdown: items", () => {
             ["Stands alone", "done"],
         ])
         expect(find(file, "Record").body).toBe(
-            "It shipped.\n\n- **Part**: one detail that wraps.\n  - a sub point\n\n**Files** are two folders.\n\nMore prose about the record.",
+            "It shipped.\n\n- **Part**: one detail that wraps.\n  - a sub point\n\n**Files** are two folders.\n\nMore prose about the record.\n\n| a | b |\n|---|---|",
         )
         expect(find(file, "the X idea").note).toBe("not wanted.")
         expect(report.skipped).toEqual(["Verified: tsc clean.", "Verified: tsc clean.", "No known gaps."])
