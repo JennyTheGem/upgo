@@ -3,6 +3,8 @@
     flex-direction: column;
     gap: var(--gap-sm);
     min-height: 100%;
+    /* Without it the page shrinks to the viewport and every card (overflow: hidden) is squashed and clipped. */
+    flex-shrink: 0;
     box-sizing: border-box;
 }
 

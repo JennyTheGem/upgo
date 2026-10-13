@@ -1,6 +1,6 @@
 import "./itemRow.css"
 import type { DragEvent, MouseEvent, Ref } from "react"
-import { PHASE_LABEL, isOpenStatus, type Status } from "../../../src/core/vocab.ts"
+import { PHASE_LABEL, isOpenStatus, type Phase, type Status } from "../../../src/core/vocab.ts"
 import type { Item } from "../../../src/core/schema.ts"
 import Button from "../primitives/button/Button.tsx"
 import Chip, { type ChipTone } from "../primitives/chip/Chip.tsx"
@@ -22,7 +22,8 @@ export type RowApi = {
     dropOn: (target: DropTarget, e: DragEvent) => void
 }
 
-const STATUS_TONE: Record<Status, ChipTone> = { planned: "neutral", partial: "warning", done: "success", dropped: "muted" }
+const PHASE_TONE: Record<Phase, ChipTone> = { now: "accent", next: "blue", later: "teal", wayLater: "periwinkle", maybe: "neutral" }
+const STATUS_TONE: Record<Status, ChipTone> = { planned: "neutral", partial: "amber", done: "green", dropped: "rose" }
 
 export default function ItemRow({ item, expanded, selected, dropBefore, api, ref, hidden }: {
     item: Item
@@ -65,7 +66,7 @@ export default function ItemRow({ item, expanded, selected, dropBefore, api, ref
                     <span className="itemId Inconsolata caption-small truncate">{item.id}</span>
                 </button>
                 <span className="itemChips">
-                    <Chip tone={item.phase === "now" ? "accent" : "neutral"} title="Phase">
+                    <Chip tone={PHASE_TONE[item.phase]} title="Phase">
                         {PHASE_LABEL[item.phase]}
                     </Chip>
                     {item.status !== "planned" && (
@@ -74,12 +75,12 @@ export default function ItemRow({ item, expanded, selected, dropBefore, api, ref
                         </Chip>
                     )}
                     {item.size && (
-                        <Chip mono title="Size">
+                        <Chip mono tone="orange" title="Size">
                             {item.size}
                         </Chip>
                     )}
                     {item.scope?.map((s) => (
-                        <Chip key={s} tone="muted" title="Scope">
+                        <Chip key={s} tone="sky" title="Scope">
                             {s}
                         </Chip>
                     ))}
