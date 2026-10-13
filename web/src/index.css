@@ -56,8 +56,6 @@
   --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
-  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-bounce-soft: cubic-bezier(0.34, 1.15, 0.64, 1);
   --ease-out-strong: cubic-bezier(0.22, 1, 0.36, 1);
 
   --duration-default: 200ms;
@@ -90,13 +88,12 @@
   --icon-brightness: brightness(100);
   --color-icon: var(--color-white);
 
-  --surface-blur: 20px;
-  --panel-surface: blur(80px) saturate(140%) brightness(90%);
-  --surface-bg: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.12));
-  --surface-border: rgba(255,255,255,0.05);
+  /* Solid steps: page, card, anything floating above a card. */
+  --surface-bg: #111111;
+  --surface-raised: #1a1a1a;
+  --surface-border: rgba(255,255,255,0.06);
   --surface-border-width: 1px;
   --surface-paint: var(--surface-bg);
-  --surface-filter: blur(var(--surface-blur)) saturate(120%);
 
   --font-sans: "Outfit";
   --font-mono: "Inconsolata";
@@ -370,7 +367,6 @@ span { font-size: .9rem; }
 
   .uiContentContainer {
     --surface-paint: Canvas !important;
-    --surface-filter: none !important;
     border: 1px solid CanvasText !important;
   }
 }
@@ -392,7 +388,6 @@ span { font-size: .9rem; }
 .uiContentContainer {
   background: var(--surface-paint);
   border: var(--surface-border-width) solid var(--surface-border);
-  backdrop-filter: var(--surface-filter);
   padding: var(--padding-default);
   box-sizing: border-box;
   overflow: hidden;

@@ -17,7 +17,7 @@
     overflow: hidden auto !important;
     overscroll-behavior: contain;
     pointer-events: auto;
-    --surface-filter: var(--panel-surface) !important;
+    --surface-paint: var(--surface-raised);
 }
 
 .dropdownList {
@@ -48,7 +48,7 @@
 
 .dropdownItem:hover,
 .dropdownItem:focus-visible {
-    background-color: var(--color-accent);
+    background-color: var(--fill-subtle-hover);
 }
 
 .dropdownItem:focus-visible {
@@ -63,10 +63,8 @@
     color: var(--color-danger);
 }
 
-/* Current selection: accent fill + accent-solid left bar. */
 .dropdownItemActive {
     background-color: var(--color-accent);
-    box-shadow: inset 2px 0 0 var(--color-accent-solid);
 }
 
 .dropdownItemActive:hover,

@@ -36,8 +36,7 @@
 }
 
 .projectButton:hover {
-    background-color: var(--color-accent);
-    border-color: var(--color-accent-solid);
+    background-color: var(--fill-subtle-hover);
 }
 
 .projectButton:focus-visible {
@@ -45,9 +44,9 @@
     box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
-.projectButton--active {
+.projectButton--active,
+.projectButton--active:hover {
     background-color: var(--color-accent);
-    box-shadow: inset 2px 0 0 var(--color-accent-solid);
 }
 
 .projectButtonRow {

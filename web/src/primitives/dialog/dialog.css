@@ -31,7 +31,8 @@
     box-shadow: var(--shadow-lg);
     box-sizing: border-box;
     pointer-events: auto;
-    animation: notchEnter var(--duration-medium) var(--ease-bounce) both;
+    --surface-paint: var(--surface-raised);
+    animation: notchEnter var(--duration-medium) var(--ease-out-strong) both;
 }
 
 .dialogHead {

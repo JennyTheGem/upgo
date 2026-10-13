@@ -23,7 +23,8 @@
     box-sizing: border-box;
     box-shadow: var(--shadow-lg);
     border-radius: var(--radius-lg);
-    animation: modalEnter var(--duration-medium) var(--ease-bounce-soft) both;
+    --surface-paint: var(--surface-raised);
+    animation: modalEnter var(--duration-medium) var(--ease-out-strong) both;
 }
 
 @keyframes modalEnter {
