@@ -25,4 +25,5 @@ html[data-reduce-motion] .selectionBar { animation: none; }
     padding: var(--padding-sm) var(--padding-md);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
+    --surface-paint: var(--surface-raised);
 }

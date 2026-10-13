@@ -16,10 +16,9 @@
                 border-color var(--duration-instant) var(--ease-default);
 }
 
-/* List-row grammar (designsystemV2 10): accent fill + accent-solid hairline on hover. */
+/* Hover stays neutral; the accent is kept for selection and focus. */
 .itemRow:not(.itemRow--open):hover {
-    background-color: var(--color-accent);
-    border-color: var(--color-accent-solid);
+    background-color: var(--fill-subtle-hover);
 }
 
 .itemRow--open {
@@ -27,7 +26,10 @@
     border-color: var(--color-border-subtle);
 }
 
-.itemRow--open:hover,
+.itemRow--open:hover {
+    border-color: var(--color-border-subtle-hover);
+}
+
 .itemRow--selected {
     border-color: var(--color-accent-solid);
 }

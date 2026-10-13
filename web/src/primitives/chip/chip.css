@@ -15,7 +15,15 @@
 }
 
 .chip--neutral { opacity: .8; }
-.chip--accent { --chip-tone: var(--color-accent-solid); }
-.chip--success { --chip-tone: var(--color-success); }
-.chip--warning { --chip-tone: var(--color-caution); }
 .chip--muted { opacity: .5; }
+
+/* Shared lightness and chroma so no hue shouts over another; tune the hue angles here. */
+.chip--accent { --chip-tone: color-mix(in oklab, var(--color-accent-solid) 70%, white); }
+.chip--blue { --chip-tone: oklch(0.78 0.12 255); }
+.chip--sky { --chip-tone: oklch(0.8 0.1 225); }
+.chip--teal { --chip-tone: oklch(0.8 0.12 185); }
+.chip--periwinkle { --chip-tone: oklch(0.78 0.1 285); }
+.chip--green { --chip-tone: oklch(0.8 0.15 150); }
+.chip--amber { --chip-tone: oklch(0.83 0.14 85); }
+.chip--orange { --chip-tone: oklch(0.78 0.14 55); }
+.chip--rose { --chip-tone: oklch(0.75 0.13 15); }

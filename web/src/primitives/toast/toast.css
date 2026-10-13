@@ -16,11 +16,12 @@
     border-radius: var(--radius-xl);
     overflow: hidden;
     pointer-events: auto;
+    --surface-paint: var(--surface-raised);
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    animation: notchEnter var(--duration-medium) var(--ease-bounce) both;
+    animation: notchEnter var(--duration-medium) var(--ease-out-strong) both;
 }
 
 .toastPill:focus-visible {
