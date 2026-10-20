@@ -1,7 +1,7 @@
 import "./tour.css"
 import type { ProjectSummary } from "../api.ts"
 import CountBar from "./CountBar.tsx"
-import { percentDone, plural } from "./counts.ts"
+import { plural } from "./counts.ts"
 import { Setlist } from "./Stage.tsx"
 
 // Every project's setlist on one screen. Projects with something in now come first, under the light.
@@ -22,7 +22,7 @@ export default function Tour({ projects, onOpen }: { projects: ProjectSummary[];
                         <h2 className="tourHeading">
                             <button type="button" className="tourName" onClick={() => onOpen(p.id)}>
                                 <span className="size-1_2 font-bold truncate">{p.id}</span>
-                                {!p.error && <span className="caption-small tabular op-70 no-wrap">{percentDone(p.done, p.open)}% done</span>}
+                                {!p.error && <span className="caption-small tabular op-70 no-wrap">{p.percent}% done</span>}
                             </button>
                         </h2>
                         {p.purpose && <span className="caption op-70 tourPurpose">{p.purpose}</span>}

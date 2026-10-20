@@ -1,5 +1,6 @@
 import { isOpenStatus, type Phase, type Size, type Status } from "../../../src/core/vocab.ts"
 import type { GoalsFile, Item, Section } from "../../../src/core/schema.ts"
+import { percentDone } from "../../../src/core/summary.ts"
 
 export type Filters = {
     phases: Phase[]
@@ -13,7 +14,7 @@ export type Filters = {
 
 export const NO_FILTERS: Filters = { phases: [], statuses: [], showClosed: false, sections: [], sizes: [], scopes: [], search: "" }
 
-export type Group = { section: Section; items: Item[]; closed: boolean; open: number; done: number }
+export type Group = { section: Section; items: Item[]; closed: boolean; open: number; done: number; percent: number }
 
 const hit = <T>(picked: T[], value: T | undefined) => !picked.length || (value !== undefined && picked.includes(value))
 
@@ -52,7 +53,7 @@ export function groupItems(file: GoalsFile, f: Filters): Group[] {
             const mine = file.items.filter((i) => i.section === section.n)
             const open = mine.filter((i) => isOpenStatus(i.status)).length
             const done = mine.filter((i) => i.status === "done").length
-            return { section, items: mine.filter((i) => matches(i, f)), closed: open === 0, open, done }
+            return { section, items: mine.filter((i) => matches(i, f)), closed: open === 0, open, done, percent: percentDone(mine) }
         })
         .filter((g) => g.items.length || (g.closed && !narrowed))
 }

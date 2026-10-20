@@ -137,7 +137,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
                 try {
                     return { id: e.id, path: e.path, ...summarize(readGoals(e.path)) }
                 } catch (err) {
-                    return { id: e.id, path: e.path, open: 0, done: 0, dropped: 0, phases: EMPTY_PHASES, now: [], error: (err as Error).message }
+                    return { id: e.id, path: e.path, open: 0, done: 0, dropped: 0, percent: 0, phases: EMPTY_PHASES, now: [], error: (err as Error).message }
                 }
             })
             return send(res, 200, { projects })

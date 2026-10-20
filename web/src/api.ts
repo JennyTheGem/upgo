@@ -11,6 +11,7 @@ export type ProjectSummary = {
     open: number
     done: number
     dropped: number
+    percent: number
     phases: Partial<Record<Item["phase"], number>>
     now: NowItem[]
     error?: string

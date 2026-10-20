@@ -2,7 +2,7 @@ import "./stage.css"
 import type { ReactNode } from "react"
 import type { NowItem } from "../api.ts"
 import CountBar from "./CountBar.tsx"
-import { percentDone, segments, type Counts } from "./counts.ts"
+import { segments, type Counts } from "./counts.ts"
 
 // The setlist: the open `now` items, numbered and big, beside the counts per phase.
 export function Setlist({ now, onPick, limit }: { now: NowItem[]; onPick: (id: string) => void; limit?: number }) {
@@ -49,7 +49,7 @@ export default function Stage({ title, meta, actions, summary, onPick }: {
     title: ReactNode
     meta?: ReactNode
     actions?: ReactNode
-    summary: Counts & { now: NowItem[]; open: number; dropped: number }
+    summary: Counts & { now: NowItem[]; open: number; dropped: number; percent: number }
     onPick: (id: string) => void
 }) {
     const { now, open, dropped } = summary
@@ -71,7 +71,7 @@ export default function Stage({ title, meta, actions, summary, onPick }: {
             <div className="stageProgress">
                 <CountBar counts={summary} />
                 <span className="caption-small tabular stageProgressText">
-                    {percentDone(summary.done, open)}% done · {open} open
+                    {summary.percent}% done · {open} open
                 </span>
             </div>
             <CountTable counts={summary} dropped={dropped} />

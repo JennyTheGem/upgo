@@ -70,6 +70,18 @@
       "note": "Cards no longer collapse on long projects, solid surfaces instead of glass, no accent bars, ease-out entrances, chips colored per phase/status/size/scope."
     },
     {
+      "id": "weighted-progress",
+      "section": 2,
+      "title": "Progress % weighted by item size",
+      "body": "Done share weighs S=1, M=2, L=4, unsized counts as M, instead of a plain item count.",
+      "phase": "now",
+      "status": "done",
+      "size": "S",
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "percentDone in src/core/summary.ts, S=1 M=2 L=4, unsized=M; used by Stage, Tour, section bars. Check: tests/summary.test.ts"
+    },
+    {
       "id": "migrate-rest",
       "section": 3,
       "title": "Migrate remaining repos to upgo",

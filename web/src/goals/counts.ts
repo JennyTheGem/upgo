@@ -7,7 +7,4 @@ export function segments({ done, phases }: Counts) {
     return [{ key: "done", label: "done", value: done }, ...PHASES.map((p) => ({ key: p, label: PHASE_LABEL[p], value: phases[p] ?? 0 }))]
 }
 
-// Done share of everything not dropped.
-export const percentDone = (done: number, open: number) => (done + open ? Math.round((done / (done + open)) * 100) : 0)
-
 export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
