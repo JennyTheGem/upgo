@@ -4,7 +4,8 @@ import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } 
 import { pathToFileURL } from "node:url"
 import { applyOp, opSchema } from "./src/core/ops.ts"
 import { readRegistry, registryPath, UPGO_DIR, type Entry } from "./src/core/registry.ts"
-import { formatIssues, isOpen } from "./src/core/schema.ts"
+import { formatIssues, PHASES } from "./src/core/schema.ts"
+import { summarize } from "./src/core/summary.ts"
 import { GOALS, readGoals, updateGoals } from "./src/core/store.ts"
 import { today, UpgoError } from "./src/core/util.ts"
 
@@ -12,6 +13,7 @@ export type ServerOptions = { port?: number; staticDir?: string; dev?: boolean }
 export type RunningServer = { url: string; port: number; close: () => Promise<void> }
 
 const HOST = "127.0.0.1"
+const EMPTY_PHASES = Object.fromEntries(PHASES.map((p) => [p, 0]))
 const DEV_PORT = 5173
 const MAX_BODY = 1_000_000
 const TYPES: Record<string, string> = {
@@ -133,11 +135,9 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
         if (method === "GET" && parts.length === 1 && parts[0] === "projects") {
             const projects = readRegistry().map((e) => {
                 try {
-                    const f = readGoals(e.path)
-                    const count = (s: string) => f.items.filter((i) => i.status === s).length
-                    return { id: e.id, path: e.path, purpose: f.purpose, open: f.items.filter(isOpen).length, done: count("done"), dropped: count("dropped") }
+                    return { id: e.id, path: e.path, ...summarize(readGoals(e.path)) }
                 } catch (err) {
-                    return { id: e.id, path: e.path, open: 0, done: 0, dropped: 0, error: (err as Error).message }
+                    return { id: e.id, path: e.path, open: 0, done: 0, dropped: 0, phases: EMPTY_PHASES, now: [], error: (err as Error).message }
                 }
             })
             return send(res, 200, { projects })

@@ -49,6 +49,21 @@ describe("project list", () => {
         expect(screen.getByText("None registered yet.")).toBeInTheDocument()
     })
 
+    it("tour lists every project's now items and opens one in its project", async () => {
+        const { user } = await setup()
+        await waitForRows()
+        await user.click(screen.getByRole("button", { name: /^Tour/ }))
+        const tour = screen.getByRole("region", { name: "Tour" })
+        expect(within(tour).getByRole("heading", { name: "Tour" })).toBeInTheDocument()
+        expect(within(tour).getByRole("button", { name: /Beta thing/ })).toBeInTheDocument()
+        expect(localStorage.getItem("upgo:project")).toBe("@tour")
+
+        await user.click(within(tour).getByRole("button", { name: /Audio profiles/ }))
+        await waitForRows()
+        expect(toggleOf("audio-profiles")).toHaveAttribute("aria-expanded", "true")
+        expect(within(screen.getByRole("region", { name: "Now" })).getAllByRole("listitem")).toHaveLength(1)
+    })
+
     it("refetches the list on a projects event", async () => {
         const { server } = await setup()
         await waitForRows()

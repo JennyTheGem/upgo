@@ -2,6 +2,7 @@ import type { MouseEvent, ReactNode, RefCallback } from "react"
 import type { Item } from "../../../src/core/schema.ts"
 import Button from "../primitives/button/Button.tsx"
 import { useVirtualRows } from "../utils/useVirtualRows.ts"
+import { percentDone } from "./counts.ts"
 import type { Group } from "./filters.ts"
 import type { RowApi } from "./ItemRow.tsx"
 
@@ -20,7 +21,8 @@ export default function SectionBlock({ group, over, pinned, api, onMenuAt, onMen
     onMenuFrom: (el: Element) => void
     renderRow: RenderRow
 }) {
-    const { section, closed, open, items } = group
+    const { section, closed, open, done, items } = group
+    const progress = `${done} of ${open + done} done`
     return (
         <section
             className={`uiContentContainer sectionBlock ${closed ? "sectionBlock--closed" : ""} ${over ? "dropTargetOver" : ""}`}
@@ -30,9 +32,16 @@ export default function SectionBlock({ group, over, pinned, api, onMenuAt, onMen
             onDrop={(e) => api.dropOn({ section: section.n }, e)}
         >
             <header className="sectionHeader" onContextMenu={onMenuAt}>
-                <span className="sectionNumber Inconsolata caption op-50">§{section.n}</span>
-                <h2 className="sectionTitle size-1 font-bold truncate">{section.title}</h2>
-                {closed ? <span className="microLabel">Closed</span> : <span className="caption-small op-50 no-wrap">{open} open</span>}
+                <span className="sectionTape">
+                    <span className="sectionNumber tabular">§{section.n}</span>
+                    <h2 className="sectionTitle truncate">{section.title}</h2>
+                </span>
+                {closed ? <span className="microLabel">Closed</span> : <span className="caption-small tabular op-70 no-wrap">{open} open</span>}
+                {open + done > 0 && (
+                    <span className="sectionProgress" role="img" aria-label={progress} title={progress}>
+                        <span style={{ width: `${percentDone(done, open)}%` }} />
+                    </span>
+                )}
                 <Button
                     variant="icon"
                     className="sectionMore"

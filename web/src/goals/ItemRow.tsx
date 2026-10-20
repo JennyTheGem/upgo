@@ -70,7 +70,7 @@ export default function ItemRow({ item, expanded, selected, dropBefore, api, ref
                         {PHASE_LABEL[item.phase]}
                     </Chip>
                     {item.status !== "planned" && (
-                        <Chip tone={STATUS_TONE[item.status]} title="Status">
+                        <Chip tone={STATUS_TONE[item.status]} stamp={closed} title="Status">
                             {item.status}
                         </Chip>
                     )}

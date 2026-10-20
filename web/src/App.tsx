@@ -1,8 +1,9 @@
 import "./app.css"
 import { useCallback, useEffect, useState } from "react"
 import { api, errorText, onServerEvent, type ProjectSummary } from "./api.ts"
-import ProjectList from "./goals/ProjectList.tsx"
+import ProjectList, { TOUR } from "./goals/ProjectList.tsx"
 import ProjectView from "./goals/ProjectView.tsx"
+import Tour from "./goals/Tour.tsx"
 import ConfirmDialog from "./primitives/confirmDialog/ConfirmDialog.tsx"
 import EmptyState from "./primitives/emptyState/EmptyState.tsx"
 import ErrorState from "./primitives/errorState/ErrorState.tsx"
@@ -16,6 +17,8 @@ export default function App() {
     const [projects, setProjects] = useState<ProjectSummary[] | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [picked, setPicked] = useState(() => readPref(PICKED))
+    // An item to open once its project loads (a click on the tour's setlist).
+    const [focus, setFocus] = useState<{ project: string; item: string } | null>(null)
 
     const load = useCallback(
         () =>
@@ -36,9 +39,11 @@ export default function App() {
     // Any change can move an open count, so every event refreshes the list.
     useEffect(() => onServerEvent(() => load()), [load])
 
-    const selected = projects?.some((p) => p.id === picked) ? picked : (projects?.[0]?.id ?? null)
-    const select = (id: string) => {
+    const known = picked === TOUR ? !!projects?.length : !!projects?.some((p) => p.id === picked)
+    const selected = known ? picked : (projects?.[0]?.id ?? null)
+    const select = (id: string, item?: string) => {
         setPicked(id)
+        setFocus(item ? { project: id, item } : null)
         writePref(PICKED, id)
     }
 
@@ -55,7 +60,9 @@ export default function App() {
                 }
             />
         )
-    else main = <ProjectView key={selected} id={selected} onChanged={load} />
+    else if (selected === TOUR) main = <Tour projects={projects} onOpen={select} />
+    // A fallback project (the picked one vanished) must not inherit the picked one's focus.
+    else main = <ProjectView key={selected} id={selected} focus={focus?.project === selected ? focus.item : null} onChanged={load} />
 
     return (
         <div className="appShell outfit">

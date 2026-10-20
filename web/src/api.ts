@@ -1,9 +1,20 @@
-import type { GoalsFile } from "../../src/core/schema.ts"
+import type { GoalsFile, Item } from "../../src/core/schema.ts"
 import type { Op } from "../../src/core/ops.ts"
 
 // Every request the dashboard makes, so tests can stub `fetch` and `EventSource` in one place.
 
-export type ProjectSummary = { id: string; path: string; purpose?: string; open: number; done: number; dropped: number; error?: string }
+export type NowItem = { id: string; title: string; status: Item["status"] }
+export type ProjectSummary = {
+    id: string
+    path: string
+    purpose?: string
+    open: number
+    done: number
+    dropped: number
+    phases: Partial<Record<Item["phase"], number>>
+    now: NowItem[]
+    error?: string
+}
 export type ProjectData = { id: string; path: string; file: GoalsFile }
 export type ServerEvent = { type: "project"; id: string } | { type: "projects" }
 

@@ -1,5 +1,6 @@
 import "./projectView.css"
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
+import { summarize } from "../../../src/core/summary.ts"
 import type { Item, Section } from "../../../src/core/schema.ts"
 import Button from "../primitives/button/Button.tsx"
 import { confirmAction } from "../primitives/confirmDialog/confirm.ts"
@@ -17,6 +18,7 @@ import ItemModal from "./ItemModal.tsx"
 import { itemMenu, sectionMenu, type ItemActions, type SectionActions } from "./itemMenu.ts"
 import ItemRow, { type RowApi } from "./ItemRow.tsx"
 import SectionBlock from "./SectionBlock.tsx"
+import Stage from "./Stage.tsx"
 import TrapsPanel from "./TrapsPanel.tsx"
 import { useProject } from "./useProject.ts"
 
@@ -36,10 +38,28 @@ const toggled = (set: Set<string>, ids: string[], on: boolean) => {
     return next
 }
 
-export default function ProjectView({ id, onChanged }: { id: string; onChanged: () => void }) {
+// Brings a row on screen and focuses it. Rows mount only near the viewport (and only after a scroll renders),
+// so until the row exists it scrolls to its section, then down past the last mounted row, a frame at a time.
+function scrollToItem(item: Item, step = 0) {
+    requestAnimationFrame(() => {
+        const row = document.querySelector(`[data-item-id="${item.id}"]`)
+        if (row) {
+            row.scrollIntoView({ block: "center" })
+            row.querySelector<HTMLElement>(".itemRowToggle")?.focus({ preventScroll: true })
+            return
+        }
+        const section = document.querySelector(`[data-section="${item.section}"]`)
+        const anchor = step ? section?.querySelector(".itemList > :last-child") : section
+        anchor?.scrollIntoView({ block: "start" })
+        if (step < 40) scrollToItem(item, step + 1)
+    })
+}
+
+// `focus` opens one item once the project loads (a pick on the tour's setlist).
+export default function ProjectView({ id, focus, onChanged }: { id: string; focus?: string | null; onChanged: () => void }) {
     const { data, error, reload, run } = useProject(id, onChanged)
     const [filters, setFilters] = useState<Filters>(NO_FILTERS)
-    const [expanded, setExpanded] = useState<Set<string>>(new Set())
+    const [expanded, setExpanded] = useState<Set<string>>(() => new Set(focus ? [focus] : []))
     const [picked, setPicked] = useState<Set<string>>(new Set())
     const [editing, setEditing] = useState<Editing | null>(null)
     const [over, setOver] = useState<string | null>(null)
@@ -52,6 +72,14 @@ export default function ProjectView({ id, onChanged }: { id: string; onChanged: 
     const file = data?.file
     const groups = useMemo(() => (file ? groupItems(file, filters) : []), [file, filters])
     const visible = groups.flatMap((g) => g.items)
+
+    const loaded = !!file
+    useEffect(() => {
+        const item = loaded && focus ? file?.items.find((i) => i.id === focus) : undefined
+        if (item) scrollToItem(item)
+        // Once, when the project first loads.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loaded])
 
     // A keyboard move re-inserts the row, which drops focus: put it back.
     useEffect(() => {
@@ -67,6 +95,15 @@ export default function ProjectView({ id, onChanged }: { id: string; onChanged: 
     }
 
     const pickedItems = file.items.filter((i) => picked.has(i.id))
+
+    // A pick from the setlist: drop filters that hide it, expand it, scroll to it.
+    const jump = (itemId: string) => {
+        const item = file.items.find((i) => i.id === itemId)
+        if (!item) return
+        if (!visible.includes(item)) setFilters(NO_FILTERS)
+        setExpanded((s) => toggled(s, [itemId], true))
+        scrollToItem(item)
+    }
 
     const copy = async (items: Item[]) => {
         try {
@@ -189,23 +226,29 @@ export default function ProjectView({ id, onChanged }: { id: string; onChanged: 
 
     return (
         <section className="projectPageContainer outfit">
-            <header className="uiContentContainer projectHeader">
-                <div className="projectHeaderText">
-                    <span className="heading font-bold truncate">{data.id}</span>
-                    <span className="Inconsolata caption-small op-50 truncate" title={data.path}>
-                        {data.path}
-                    </span>
-                    {file.purpose && <span className="caption op-80">{file.purpose}</span>}
-                </div>
-                <div className="projectActions">
-                    <Button variant="secondary" imgProps={{ img: "iconify:add" }} onClick={addSection}>
-                        Add section
-                    </Button>
-                    <Button variant="primary" imgProps={{ img: "iconify:add" }} disabled={!file.sections.length} onClick={() => setEditing({})}>
-                        Add item
-                    </Button>
-                </div>
-            </header>
+            <Stage
+                summary={summarize(file)}
+                onPick={jump}
+                title={<h1 className="stageHeading truncate">{data.id}</h1>}
+                meta={
+                    <>
+                        {file.purpose && <span className="caption op-80">{file.purpose}</span>}
+                        <span className="Inconsolata caption-small op-50 truncate" title={data.path}>
+                            {data.path}
+                        </span>
+                    </>
+                }
+                actions={
+                    <>
+                        <Button variant="secondary" imgProps={{ img: "iconify:add" }} onClick={addSection}>
+                            Add section
+                        </Button>
+                        <Button variant="primary" imgProps={{ img: "iconify:add" }} disabled={!file.sections.length} onClick={() => setEditing({})}>
+                            Add item
+                        </Button>
+                    </>
+                }
+            />
 
             {file.traps.length > 0 && <TrapsPanel traps={file.traps} />}
 
@@ -265,11 +308,12 @@ export default function ProjectView({ id, onChanged }: { id: string; onChanged: 
 function ProjectSkeleton() {
     return (
         <section className="projectPageContainer" aria-busy="true" aria-label="Loading project">
-            <div className="uiContentContainer projectHeader">
-                <div className="projectHeaderText">
-                    <span className="skeletonPulse skeletonBar" style={{ width: "40%", height: "2rem" }} />
-                    <span className="skeletonPulse skeletonBar" style={{ width: "70%" }} />
-                </div>
+            <div className="uiContentContainer stage">
+                <span className="skeletonPulse skeletonBar" style={{ width: "40%", height: "2rem" }} />
+                <span className="skeletonPulse skeletonBar" style={{ width: "70%" }} />
+                {[60, 45, 52].map((w) => (
+                    <span key={w} className="skeletonPulse skeletonBar" style={{ width: `${w}%`, height: "1.3rem" }} />
+                ))}
             </div>
             <div className="uiContentContainer sectionBlock">
                 {[80, 65, 72].map((w) => (

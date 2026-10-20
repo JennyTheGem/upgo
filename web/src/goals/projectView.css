@@ -8,29 +8,6 @@
     box-sizing: border-box;
 }
 
-.projectHeader {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: var(--gap-md);
-    padding: var(--padding-lg);
-}
-
-.projectHeaderText {
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap-2xs);
-    min-width: 0;
-    flex: 1 1 260px;
-}
-
-.projectActions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--gap-sm);
-}
-
 .skeletonBar {
     display: block;
     height: 0.9rem;
@@ -125,7 +102,7 @@
 }
 
 .sectionBlock--closed {
-    opacity: .5;
+    opacity: .55;
 }
 
 .sectionBlock--closed:hover,
@@ -136,15 +113,48 @@
 .sectionHeader {
     display: flex;
     align-items: center;
+    gap: var(--gap-md);
+    min-height: 36px;
+    padding: var(--padding-xs) var(--padding-xs) var(--padding-sm);
+}
+
+/* The section's number and name. */
+.sectionTape {
+    display: inline-flex;
+    align-items: baseline;
     gap: var(--gap-sm);
-    min-height: 32px;
-    padding: 0 var(--padding-xs);
+    min-width: 0;
+}
+
+.sectionNumber {
+    flex-shrink: 0;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--tone-accent);
 }
 
 .sectionTitle {
     margin: 0;
-    flex: 0 1 auto;
     min-width: 0;
+    font-size: .95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.sectionProgress {
+    flex: 0 1 120px;
+    min-width: 48px;
+    height: 4px;
+    border-radius: var(--radius-2xs);
+    background-color: var(--fill-subtle-hover);
+    overflow: hidden;
+
+    span {
+        display: block;
+        height: 100%;
+        background-color: var(--phase-done);
+    }
 }
 
 .sectionMore {

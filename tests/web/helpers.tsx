@@ -4,8 +4,8 @@ import { vi } from "vitest"
 import App from "../../web/src/App.tsx"
 import { applyOp, opSchema } from "../../src/core/ops.ts"
 import { formatIssues, type GoalsFile, type Item } from "../../src/core/schema.ts"
+import { summarize } from "../../src/core/summary.ts"
 import { localIssues } from "../../src/core/rules.ts"
-import { isOpenStatus } from "../../src/core/vocab.ts"
 
 export type FakeProject = { path: string; file?: GoalsFile; error?: string; details?: Record<string, string> }
 
@@ -74,18 +74,8 @@ export function fakeServer(initial: Record<string, FakeProject>) {
     const headers: Record<string, string>[] = []
     let rejection: string | null = null
 
-    const summary = (id: string, p: FakeProject) => {
-        const count = (pick: (s: Item["status"]) => boolean) => p.file?.items.filter((i) => pick(i.status)).length ?? 0
-        return {
-            id,
-            path: p.path,
-            purpose: p.file?.purpose,
-            open: count(isOpenStatus),
-            done: count((s) => s === "done"),
-            dropped: count((s) => s === "dropped"),
-            ...(p.error ? { error: p.error } : {}),
-        }
-    }
+    const summary = (id: string, p: FakeProject) =>
+        p.file ? { id, path: p.path, ...summarize(p.file) } : { id, path: p.path, open: 0, done: 0, dropped: 0, phases: {}, now: [], error: p.error }
 
     const handle = async (url: string, init?: RequestInit): Promise<Reply> => {
         if (url === "/api/projects") return reply(200, { projects: Object.entries(state).map(([id, p]) => summary(id, p)) })

@@ -12,13 +12,36 @@
   --color-caution: #eab308;
   --color-accent: rgba(204, 26, 236, 0.304);
   --color-accent-solid: rgb(204, 26, 236);
+  /* Button fill: dark enough for white bold text at 4.5:1. */
+  --color-accent-strong: color-mix(in oklab, var(--color-accent-solid) 72%, black);
   --color-accent-secondary: rgb(43 127 214);
   --color-focus-ring: color-mix(in srgb, var(--color-accent-solid) 25%, transparent);
 
-  --color-background: #080808;
+  /* Setlist world: stage black, riser greys, one magenta stage light. */
+  --color-background: #0b0a0d;
+  --stage-wash: linear-gradient(180deg, color-mix(in oklab, var(--color-accent-solid) 20%, var(--surface-bg)), color-mix(in oklab, var(--color-accent-solid) 7%, var(--surface-bg)) 70%);
+
+  /* Shared tones: chips, bars and phase swatches. Same lightness and chroma so no hue shouts. */
+  --tone-accent: color-mix(in oklab, var(--color-accent-solid) 70%, white);
+  --tone-blue: oklch(0.78 0.12 255);
+  --tone-sky: oklch(0.8 0.1 225);
+  --tone-teal: oklch(0.8 0.12 185);
+  --tone-periwinkle: oklch(0.78 0.1 285);
+  --tone-green: oklch(0.8 0.15 150);
+  --tone-amber: oklch(0.83 0.14 85);
+  --tone-orange: oklch(0.78 0.14 55);
+  --tone-rose: oklch(0.75 0.13 15);
+  --tone-grey: oklch(0.62 0.015 300);
+
+  --phase-now: var(--color-accent-solid);
+  --phase-next: var(--tone-blue);
+  --phase-later: var(--tone-teal);
+  --phase-wayLater: var(--tone-periwinkle);
+  --phase-maybe: var(--tone-grey);
+  --phase-done: color-mix(in srgb, var(--color-white) 78%, transparent);
   --color-ui: rgba(17, 17, 17, 0.8);
 
-  --color-white: #f8fafc;
+  --color-white: #f4f1f6;
   --color-pure-white: white;
   --color-pure-black: black;
 
@@ -89,8 +112,9 @@
   --color-icon: var(--color-white);
 
   /* Solid steps: page, card, anything floating above a card. */
-  --surface-bg: #111111;
-  --surface-raised: #1a1a1a;
+  --surface-bg: #141217;
+  --surface-raised: #1d1a21;
+  --surface-rail: #100e13;
   --surface-border: rgba(255,255,255,0.06);
   --surface-border-width: 1px;
   --surface-paint: var(--surface-bg);
@@ -130,8 +154,16 @@ body {
   padding: 0;
   margin: 0;
   background-color: var(--color-background);
+  caret-color: var(--color-accent-solid);
   -webkit-tap-highlight-color: transparent;
 }
+
+::selection {
+  background-color: color-mix(in srgb, var(--color-accent-solid) 45%, transparent);
+  color: var(--color-white);
+}
+
+.tabular { font-variant-numeric: tabular-nums; }
 
 figure,
 nav,
@@ -343,7 +375,7 @@ span { letter-spacing: 0.03em; }
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  opacity: 0.38;
+  opacity: 0.6;
 }
 
 span { font-size: .9rem; }

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import type userEvent from "@testing-library/user-event"
-import { rowIds, setup, waitForRows } from "./helpers.tsx"
+import { rowIds, setup, toggleOf, waitForRows } from "./helpers.tsx"
 
 afterEach(() => {
     vi.unstubAllGlobals()
@@ -107,5 +107,16 @@ describe("filters", () => {
         expect(screen.getByRole("heading", { name: "Old stuff" })).toBeInTheDocument()
         await user.type(screen.getByRole("textbox", { name: "Search items" }), "audio")
         expect(screen.queryByRole("heading", { name: "Old stuff" })).toBeNull()
+    })
+
+    it("a setlist pick clears filters that hide the item, then opens and focuses it", async () => {
+        const { user } = await setup()
+        await waitForRows()
+        await filter(user, /^Phase/, "next")
+        expect(rowIds()).toEqual(["smart-playlists"])
+        await user.click(within(screen.getByRole("region", { name: "Now" })).getByRole("button", { name: /Audio profiles/ }))
+        expect(rowIds()).toEqual(OPEN)
+        expect(toggleOf("audio-profiles")).toHaveAttribute("aria-expanded", "true")
+        await waitFor(() => expect(toggleOf("audio-profiles")).toHaveFocus())
     })
 })

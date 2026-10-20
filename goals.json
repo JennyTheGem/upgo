@@ -1,0 +1,248 @@
+{
+  "$schema": "file:///<upgo folder>/goals.schema.json",
+  "version": 1,
+  "project": "upgo",
+  "purpose": "Structured goals for every project: a validating CLI for agents, a slim generated goals.md, and a local dashboard.",
+  "sections": [
+    {
+      "n": 1,
+      "title": "CLI and core"
+    },
+    {
+      "n": 2,
+      "title": "Dashboard"
+    },
+    {
+      "n": 3,
+      "title": "Rollout"
+    }
+  ],
+  "traps": [],
+  "items": [
+    {
+      "id": "tour-stage",
+      "section": 2,
+      "title": "Tour and Stage views with count bars",
+      "body": "Uncommitted: cross-project Tour page, per-project Stage setlist of now items, CountBar per phase, server project summary.",
+      "phase": "now",
+      "status": "done",
+      "size": "M",
+      "pointers": {
+        "files": [
+          "web/src/goals/Tour.tsx",
+          "web/src/goals/Stage.tsx",
+          "web/src/goals/CountBar.tsx",
+          "src/core/summary.ts"
+        ],
+        "check": [
+          "npm test, typecheck, lint, build"
+        ]
+      },
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "Setlist redesign: Tour overview, Stage header with Now setlist, count bars in sidebar and sections, done/dropped stamps, summary API with phases and now items"
+    },
+    {
+      "id": "dashboard",
+      "section": 2,
+      "title": "React dashboard",
+      "phase": "later",
+      "status": "done",
+      "size": "L",
+      "pointers": {
+        "files": [
+          "web/src"
+        ]
+      },
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "Project sidebar, filters and search, expand rows, edit modal, phase/status/done/drop/reopen, drag and Alt+Up/Down reorder, section management, multi-select copy, live SSE, virtualized list."
+    },
+    {
+      "id": "ui-polish",
+      "section": 2,
+      "title": "Dashboard design pass",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "Cards no longer collapse on long projects, solid surfaces instead of glass, no accent bars, ease-out entrances, chips colored per phase/status/size/scope."
+    },
+    {
+      "id": "migrate-rest",
+      "section": 3,
+      "title": "Migrate remaining repos to upgo",
+      "body": "PLAN.md lists BeyondUI, chat and Uplift with hand-written goals.md dialects. Run 'migrate goals' in each.",
+      "phase": "next",
+      "status": "done",
+      "size": "S",
+      "created": "2026-10-20",
+      "updated": "2026-10-20"
+    },
+    {
+      "id": "skill",
+      "section": 3,
+      "title": "Agent skill with migrate goals procedure",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "pointers": {
+        "files": [
+          "skill/SKILL.md"
+        ]
+      },
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "skill/SKILL.md junctioned into ~/.claude/skills/upgo."
+    },
+    {
+      "id": "rollout-setup",
+      "section": 3,
+      "title": "Global rules, PATH and upex shortcuts",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "pointers": {
+        "files": [
+          "start.bat"
+        ]
+      },
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "Global CLAUDE.md goals and /init rules, folder on PATH, upex upgo and startUpgo, start.bat builds web/dist when missing."
+    },
+    {
+      "id": "readme",
+      "section": 3,
+      "title": "README: how to use upgo",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "pointers": {
+        "files": [
+          "README.md"
+        ]
+      },
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "Setup, dashboard, agents, adding projects, CLI, file layout, troubleshooting."
+    },
+    {
+      "id": "pilot-migrations",
+      "section": 3,
+      "title": "Migrate first projects",
+      "phase": "later",
+      "status": "done",
+      "size": "M",
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "velora-frontend-react, velora-backend, upex and portfolio-2026 registered in the registry."
+    },
+    {
+      "id": "core-store",
+      "section": 1,
+      "title": "Core: zod schema, store with lock and atomic save",
+      "phase": "later",
+      "status": "done",
+      "size": "M",
+      "pointers": {
+        "files": [
+          "src/core/schema.ts",
+          "src/core/store.ts",
+          "src/core/mutate.ts"
+        ]
+      },
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "goals.json per project, O_EXCL lock (stale after 10s), tmp+rename save, goals.schema.json emitted for VS Code."
+    },
+    {
+      "id": "cli",
+      "section": 1,
+      "title": "CLI for every goals mutation",
+      "phase": "later",
+      "status": "done",
+      "size": "M",
+      "pointers": {
+        "files": [
+          "cli.ts"
+        ]
+      },
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "init, add, edit, show, list, done, drop, reopen, delete, move, section, trap, purpose, check, render, import, forget, ui. PATH shims upgo and upgo.cmd."
+    },
+    {
+      "id": "check-render",
+      "section": 1,
+      "title": "Check rules and slim goals.md renderer",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "pointers": {
+        "files": [
+          "src/core/check.ts",
+          "src/core/render.ts"
+        ]
+      },
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "Unique ids, sections, related refs, detail files, md in sync. goals.md: traps, now/next/later lines, counts for wayLater/maybe."
+    },
+    {
+      "id": "importer",
+      "section": 1,
+      "title": "Importer for old hand-written goals.md",
+      "phase": "later",
+      "status": "done",
+      "size": "M",
+      "pointers": {
+        "files": [
+          "src/core/import.ts"
+        ]
+      },
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "Converts the Velora, checkmark-list and narrative dialects plus goals-completed.md. Reports ignored lines; archive tables stay inside their record."
+    },
+    {
+      "id": "hooks",
+      "section": 1,
+      "title": "Git pre-commit and Claude edit-blocking hooks",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "Installed by init. Pre-commit runs upgo check for every upgo project in the repo; Claude hook blocks Edit/Write on schema-tagged goals.json and goals.md."
+    },
+    {
+      "id": "server",
+      "section": 1,
+      "title": "Local REST and SSE server",
+      "phase": "later",
+      "status": "done",
+      "size": "M",
+      "pointers": {
+        "files": [
+          "server.ts"
+        ]
+      },
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "127.0.0.1 only, custom header plus Origin check on mutations, projects by registry id, fs.watch pushes SSE. Vite dev port trusted only with UPGO_DEV=1."
+    },
+    {
+      "id": "review-fixes",
+      "section": 1,
+      "title": "Review hardening pass",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "created": "2026-10-20",
+      "updated": "2026-10-20",
+      "note": "goals.md written first so retries cannot double-add, lock cleanup never fails a write, init checks the registry first, CRLF purpose fix, list --search matches values only."
+    }
+  ]
+}

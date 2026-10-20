@@ -1,0 +1,71 @@
+.tourPage {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    flex-shrink: 0;
+}
+
+.tourHeader {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--gap-xs) var(--gap-lg);
+    padding: var(--padding-lg) var(--padding-sm) var(--padding-md);
+}
+
+/* Masonry: cards keep their own height and stack in columns, no row gaps. */
+.tourGrid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    columns: 320px;
+    column-gap: var(--gap-sm);
+}
+
+.tourProject {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    padding: var(--padding-lg);
+    margin-bottom: var(--gap-sm);
+    break-inside: avoid;
+}
+
+.tourHeading {
+    margin: 0;
+    font: inherit;
+}
+
+.tourName {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--gap-md);
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: var(--radius-xs);
+}
+
+.tourName:hover .size-1_2 {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+    text-decoration-color: var(--color-accent-solid);
+}
+
+.tourName:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.tourPurpose {
+    line-height: 1.4;
+}
+
+.tourProject .setlist {
+    margin-top: var(--gap-xs);
+}
+
+.tourProject .setlistSong {
+    font-size: 1rem;
+}

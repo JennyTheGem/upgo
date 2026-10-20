@@ -1,0 +1,27 @@
+.countBar {
+    display: flex;
+    gap: 2px;
+    width: 100%;
+    height: 8px;
+    border-radius: var(--radius-2xs);
+    overflow: hidden;
+    background-color: var(--fill-subtle);
+}
+
+.countBar--thin {
+    height: 4px;
+    gap: 1px;
+}
+
+.countBarPart {
+    flex-basis: 0;
+    min-width: 2px;
+}
+
+/* The phase swatch used next to counts. */
+.phaseSwatch {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-2xs);
+}

@@ -13,7 +13,7 @@ export type Filters = {
 
 export const NO_FILTERS: Filters = { phases: [], statuses: [], showClosed: false, sections: [], sizes: [], scopes: [], search: "" }
 
-export type Group = { section: Section; items: Item[]; closed: boolean; open: number }
+export type Group = { section: Section; items: Item[]; closed: boolean; open: number; done: number }
 
 const hit = <T>(picked: T[], value: T | undefined) => !picked.length || (value !== undefined && picked.includes(value))
 
@@ -51,7 +51,8 @@ export function groupItems(file: GoalsFile, f: Filters): Group[] {
         .map((section) => {
             const mine = file.items.filter((i) => i.section === section.n)
             const open = mine.filter((i) => isOpenStatus(i.status)).length
-            return { section, items: mine.filter((i) => matches(i, f)), closed: open === 0, open }
+            const done = mine.filter((i) => i.status === "done").length
+            return { section, items: mine.filter((i) => matches(i, f)), closed: open === 0, open, done }
         })
         .filter((g) => g.items.length || (g.closed && !narrowed))
 }

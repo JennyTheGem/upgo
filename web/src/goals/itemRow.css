@@ -108,13 +108,17 @@
     opacity: .5;
 }
 
+/* Played: a marker stroke through the title, still readable. */
 .itemRow--done .itemTitle,
 .itemRow--dropped .itemTitle {
     opacity: .5;
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    text-decoration-color: color-mix(in srgb, var(--color-white) 55%, transparent);
 }
 
 .itemRow--dropped .itemTitle {
-    text-decoration: line-through;
+    text-decoration-color: color-mix(in srgb, var(--tone-rose) 70%, transparent);
 }
 
 .itemChips {

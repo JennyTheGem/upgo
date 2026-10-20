@@ -1,14 +1,16 @@
 /* Velora float mode: the sidebar and the view float on the page with one gap between them. */
 .appShell {
     display: grid;
-    grid-template-columns: clamp(200px, 22vw, 280px) minmax(0, 1fr);
+    grid-template-columns: clamp(220px, 22vw, 290px) minmax(0, 1fr);
     gap: var(--gap-sm);
     height: 100dvh;
     padding: max(var(--gap-sm), var(--safe-top)) max(var(--gap-sm), var(--safe-right)) max(var(--gap-sm), var(--safe-bottom)) max(var(--gap-sm), var(--safe-left));
     box-sizing: border-box;
 }
 
+/* The rail is a second, darker neutral so the stage reads as the lit area. */
 .appSidebarContent {
+    --surface-paint: var(--surface-rail);
     display: flex;
     flex-direction: column;
     gap: var(--gap-md);
@@ -19,6 +21,11 @@
 .appBrand {
     padding: var(--padding-xs) var(--padding-sm) 0;
     letter-spacing: -0.02em;
+}
+
+.appBrand::after {
+    content: ".";
+    color: var(--color-accent-solid);
 }
 
 .appMain {
