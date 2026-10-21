@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { isFinished } from "../../web/src/goals/counts.ts"
 import { formatForAgent } from "../../web/src/goals/format.ts"
 import { NO_FILTERS, groupItems } from "../../web/src/goals/filters.ts"
 import { diffPatch, fromForm, toForm } from "../../web/src/goals/itemForm.ts"
@@ -33,5 +34,15 @@ describe("item form", () => {
     it("drops empty optional fields from a new item", () => {
         const form = { ...toForm(undefined, 2), title: " New " }
         expect(fromForm(form)).toEqual({ title: "New", section: 2, phase: "next", status: "planned" })
+    })
+})
+
+describe("isFinished", () => {
+    it("needs something done and nothing committed open, ignores maybes, never on error", () => {
+        expect(isFinished({ done: 3, open: 0, phases: {} })).toBe(true)
+        expect(isFinished({ done: 3, open: 2, phases: { maybe: 2 } })).toBe(true)
+        expect(isFinished({ done: 3, open: 1, phases: { later: 1 } })).toBe(false)
+        expect(isFinished({ done: 0, open: 0, phases: {} })).toBe(false)
+        expect(isFinished({ done: 3, open: 0, phases: {}, error: "bad json" })).toBe(false)
     })
 })

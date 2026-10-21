@@ -129,3 +129,8 @@
 html[data-reduce-motion] .projectButton {
     transition: none;
 }
+
+.projectFinished {
+    flex-shrink: 0;
+    align-self: center;
+}

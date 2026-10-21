@@ -8,3 +8,6 @@ export function segments({ done, phases }: Counts) {
 }
 
 export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
+
+// Something shipped and nothing committed left. Open maybes don't block it.
+export const isFinished = ({ done, open, phases, error }: Counts & { open: number; error?: string }) => !error && done > 0 && open === (phases.maybe ?? 0)

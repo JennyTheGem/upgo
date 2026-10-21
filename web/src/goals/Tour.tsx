@@ -1,13 +1,15 @@
 import "./tour.css"
 import type { ProjectSummary } from "../api.ts"
 import CountBar from "./CountBar.tsx"
-import { plural } from "./counts.ts"
+import { isFinished, plural } from "./counts.ts"
 import { Setlist } from "./Stage.tsx"
+import Icon from "../primitives/icon/Icon.tsx"
 
-// Every project's setlist on one screen. Projects with something in now come first, under the light.
+// Every project's setlist on one screen. Projects with something in now come first, under the light; finished ones go last.
 export default function Tour({ projects, onOpen }: { projects: ProjectSummary[]; onOpen: (id: string, item?: string) => void }) {
     const sum = (pick: (p: ProjectSummary) => number) => projects.reduce((n, p) => n + pick(p), 0)
-    const order = [...projects].sort((a, b) => Number(!!b.now.length) - Number(!!a.now.length))
+    const rank = (p: ProjectSummary) => (p.now.length ? 0 : isFinished(p) ? 2 : 1)
+    const order = [...projects].sort((a, b) => rank(a) - rank(b))
     return (
         <section className="tourPage outfit" aria-label="Tour">
             <header className="tourHeader">
@@ -22,7 +24,14 @@ export default function Tour({ projects, onOpen }: { projects: ProjectSummary[];
                         <h2 className="tourHeading">
                             <button type="button" className="tourName" onClick={() => onOpen(p.id)}>
                                 <span className="size-1_2 font-bold truncate">{p.id}</span>
-                                {!p.error && <span className="caption-small tabular op-70 no-wrap">{p.percent}% done</span>}
+                                {isFinished(p) ? (
+                                    <span className="caption-small tabular no-wrap tourDone">
+                                        <Icon name="iconify:check-circle-rounded" color="currentColor" />
+                                        100% done
+                                    </span>
+                                ) : (
+                                    !p.error && <span className="caption-small tabular op-70 no-wrap">{p.percent}% done</span>
+                                )}
                             </button>
                         </h2>
                         {p.purpose && <span className="caption op-70 tourPurpose">{p.purpose}</span>}

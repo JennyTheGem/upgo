@@ -1,7 +1,8 @@
 import "./projectList.css"
 import type { ProjectSummary } from "../api.ts"
 import CountBar from "./CountBar.tsx"
-import { plural } from "./counts.ts"
+import { isFinished, plural } from "./counts.ts"
+import Icon from "../primitives/icon/Icon.tsx"
 
 // The overview's id in the selection; never a valid project slug.
 export const TOUR = "@tour"
@@ -42,7 +43,9 @@ export default function ProjectList({ projects, selected, onSelect }: { projects
                             <span className="projectButtonRow">
                                 <span className="projectName font-bold truncate">{p.id}</span>
                                 {p.now.length > 0 && <span className="projectNow caption-small tabular">{p.now.length} now</span>}
-                                {!p.error && (
+                                {isFinished(p) ? (
+                                    <Icon name="iconify:check-circle-rounded" color="var(--tone-green)" className="projectFinished" alt="finished" />
+                                ) : !p.error && (
                                     <span className="projectCount caption-small tabular" title={`${p.open} open`} aria-label={`${p.open} open`}>
                                         {p.open}
                                     </span>

@@ -69,3 +69,11 @@
 .tourProject .setlistSong {
     font-size: 1rem;
 }
+
+.tourDone {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--gap-2xs);
+    color: var(--tone-green);
+    opacity: 1;
+}
