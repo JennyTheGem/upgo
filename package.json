@@ -1,6 +1,6 @@
 {
   "name": "upgo",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "description": "Structured goals for every project: a validating CLI for agents, a slim generated goals.md, and a local dashboard.",

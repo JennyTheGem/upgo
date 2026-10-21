@@ -4,11 +4,11 @@ import { PHASES, isOpenStatus, type Phase, type Size } from "./vocab.ts"
 // How much an item counts toward progress. Unsized counts as M.
 export const SIZE_WEIGHT: Record<Size, number> = { S: 1, M: 2, L: 4 }
 
-// Done share of everything not dropped, weighted by size.
+// Done share of everything not dropped, weighted by size. Open maybes are not committed work, so they don't count.
 export function percentDone(items: Item[]) {
     const weigh = (pick: (i: Item) => boolean) => items.filter(pick).reduce((n, i) => n + SIZE_WEIGHT[i.size ?? "M"], 0)
     const done = weigh((i) => i.status === "done")
-    const total = done + weigh((i) => isOpenStatus(i.status))
+    const total = done + weigh((i) => isOpenStatus(i.status) && i.phase !== "maybe")
     return total ? Math.round((done / total) * 100) : 0
 }
 
