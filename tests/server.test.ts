@@ -86,7 +86,7 @@ describe("reading", () => {
         expect((await req("/api/projects/ghost")).status).toBe(404)
         expect((await req("/api/projects/..%2F..%2Fetc")).status).toBe(404)
         expect((await req("/api/nothing")).status).toBe(404)
-        expect((await req("/api/projects/demo", { method: "DELETE" })).status).toBe(405)
+        expect((await req("/api/projects/demo", { method: "PUT" })).status).toBe(405)
     })
 
     it("serves an item's detail file only when it is an .md inside the project", async () => {
@@ -152,6 +152,18 @@ describe("writing", () => {
         r = await post(JSON.stringify({ op: "done", id: "alpha", note: "x".repeat(1_100_000) }))
         expect(r.status).toBe(413)
         expect(readFileSync(join(project, GOALS), "utf8")).toBe(before)
+    })
+})
+
+describe("removing a project", () => {
+    it("unregisters it with the header and a local origin, leaving its files", async () => {
+        const del = (headers: Record<string, string>) => req("/api/projects/demo", { method: "DELETE", headers })
+        expect((await del({})).status).toBe(403)
+        expect((await del({ "X-Upgo": "1", Origin: "https://evil.example" })).status).toBe(403)
+        expect((await del({ "X-Upgo": "1", Origin: `http://127.0.0.1:${server.port}` })).json()).toEqual({ id: "demo" })
+        expect((await req("/api/projects")).json().projects).toEqual([])
+        expect((await del({ "X-Upgo": "1" })).status).toBe(404)
+        expect(readGoals(project).project).toBe("demo")
     })
 })
 

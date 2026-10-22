@@ -52,6 +52,8 @@ export const api = {
             headers: { "Content-Type": "application/json", "X-Upgo": "1" },
             body: JSON.stringify(op),
         }).then((r) => r.file),
+    // Unregisters only: the folder and its goals.json stay.
+    forget: (id: string) => request<{ id: string }>(at(id), { method: "DELETE", headers: { "X-Upgo": "1" } }),
 }
 
 // One shared EventSource for every subscriber, opened with the first and closed with the last.

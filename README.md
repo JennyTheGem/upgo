@@ -76,7 +76,7 @@ Outside the projects, in this folder: `registry.json` (which projects exist; `UP
 - **A write waits or says the file is locked**: another write holds `goals.json.lock`. A lock older than 10s is taken over automatically.
 - **Dashboard says it is not built**: `npm run build` here.
 - **This folder moved**: the installed hooks point at the old path and fail. Run `upgo init` again in each project.
-- **Remove a project from the dashboard**: `upgo forget <id>`. Its files stay where they are.
+- **Remove a project from the dashboard**: its Remove button, or `upgo forget <id>`. Its files stay where they are.
 
 ## Pieces
 

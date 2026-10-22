@@ -2,6 +2,7 @@ import "./projectView.css"
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
 import { summarize } from "../../../src/core/summary.ts"
 import type { Item, Section } from "../../../src/core/schema.ts"
+import { api, errorText } from "../api.ts"
 import Button from "../primitives/button/Button.tsx"
 import { confirmAction } from "../primitives/confirmDialog/confirm.ts"
 import Dropdown from "../primitives/dropdown/dropdown.tsx"
@@ -89,8 +90,30 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
         document.querySelector<HTMLElement>(`[data-item-id="${moved}"] .itemRowToggle`)?.focus()
     }, [file])
 
+    const forget = async () => {
+        const ok = await confirmAction({
+            message: `Remove "${id}" from upgo?`,
+            description: "Only unregisters it. The folder and its goals.json stay, run upgo init there to add it back.",
+            confirmLabel: "Remove",
+            variant: "destructive",
+        })
+        if (!ok) return
+        try {
+            await api.forget(id)
+            toast.success(`Removed ${id}`)
+            onChanged()
+        } catch (e) {
+            toast.error(errorText(e))
+        }
+    }
+    const removeButton = (
+        <Button variant="secondary" imgProps={{ img: "iconify:delete" }} onClick={forget}>
+            Remove
+        </Button>
+    )
+
     if (!data || !file) {
-        if (error) return <ErrorState className="uiContentContainer" message={error} onRetry={reload} />
+        if (error) return <ErrorState className="uiContentContainer" message={error} onRetry={reload} action={removeButton} />
         return <ProjectSkeleton />
     }
 
@@ -240,6 +263,7 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
                 }
                 actions={
                     <>
+                        {removeButton}
                         <Button variant="secondary" imgProps={{ img: "iconify:add" }} onClick={addSection}>
                             Add section
                         </Button>

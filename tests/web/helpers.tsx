@@ -83,6 +83,11 @@ export function fakeServer(initial: Record<string, FakeProject>) {
         const id = m && decodeURIComponent(m[1])
         const p = id ? state[id] : undefined
         if (!m || !id || !p) return reply(404, { error: "not found" })
+        if (init?.method === "DELETE") {
+            headers.push(init.headers as Record<string, string>)
+            delete state[id]
+            return reply(200, { id })
+        }
         if (m[2]) {
             const op = JSON.parse(String(init?.body))
             ops.push(op)

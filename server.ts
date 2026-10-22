@@ -3,7 +3,7 @@ import { existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { applyOp, opSchema } from "./src/core/ops.ts"
-import { readRegistry, registryPath, UPGO_DIR, type Entry } from "./src/core/registry.ts"
+import { forget, readRegistry, registryPath, UPGO_DIR, type Entry } from "./src/core/registry.ts"
 import { formatIssues, PHASES } from "./src/core/schema.ts"
 import { summarize } from "./src/core/summary.ts"
 import { GOALS, readGoals, updateGoals } from "./src/core/store.ts"
@@ -120,6 +120,12 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
     syncWatchers()
 
     const entryFor = (id: string) => readRegistry().find((e) => e.id === id)
+    // Writes need our header and, when the browser sends one, our own origin.
+    const refusal = (req: http.IncomingMessage) => {
+        if (req.headers["x-upgo"] !== "1") return "missing X-Upgo header"
+        const origin = req.headers.origin
+        if (origin && !authorities().some((a) => origin === `http://${a}`)) return "foreign origin"
+    }
 
     async function api(req: http.IncomingMessage, res: http.ServerResponse, parts: string[]): Promise<void> {
         const method = req.method ?? "GET"
@@ -158,11 +164,17 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
             return send(res, 200, { path: item.detail, text: readFileSync(path, "utf8") })
         }
 
+        if (method === "DELETE" && parts.length === 2) {
+            const refused = refusal(req)
+            if (refused) return fail(res, 403, refused)
+            await forget(entry.id)
+            return send(res, 200, { id: entry.id })
+        }
+
         if (method === "POST" && parts.length === 3 && parts[2] === "ops") {
-            const origin = req.headers.origin
-            if (req.headers["x-upgo"] !== "1") return fail(res, 403, "missing X-Upgo header")
+            const refused = refusal(req)
+            if (refused) return fail(res, 403, refused)
             if (!req.headers["content-type"]?.startsWith("application/json")) return fail(res, 415, "expected application/json")
-            if (origin && !authorities().some((a) => origin === `http://${a}`)) return fail(res, 403, "foreign origin")
             let body: unknown
             try {
                 body = JSON.parse(await readBody(req))
@@ -175,7 +187,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
             return send(res, 200, { file })
         }
 
-        return fail(res, method === "GET" || method === "POST" ? 404 : 405, "not found")
+        return fail(res, ["GET", "POST", "DELETE"].includes(method) ? 404 : 405, "not found")
     }
 
     function serveStatic(req: http.IncomingMessage, res: http.ServerResponse, pathname: string): void {

@@ -64,6 +64,26 @@ describe("project list", () => {
         expect(within(screen.getByRole("region", { name: "Now" })).getAllByRole("listitem")).toHaveLength(1)
     })
 
+    it("removes a project after confirming, even an unreadable one", async () => {
+        const { user, server } = await setup()
+        await waitForRows()
+        await user.click(screen.getByRole("button", { name: "Remove" }))
+        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Cancel" }))
+        expect(server.state.alpha).toBeDefined()
+
+        await user.click(screen.getByRole("button", { name: "Remove" }))
+        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Remove" }))
+        expect(await screen.findByRole("heading", { name: "Core" })).toBeInTheDocument()
+        expect(server.state.alpha).toBeUndefined()
+        expect(server.headers.at(-1)).toMatchObject({ "X-Upgo": "1" })
+
+        await user.click(screen.getByRole("button", { name: /broken/ }))
+        await user.click(await screen.findByRole("button", { name: "Remove" }))
+        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Remove" }))
+        expect(await screen.findByRole("heading", { name: "Core" })).toBeInTheDocument()
+        expect(Object.keys(server.state)).toEqual(["beta"])
+    })
+
     it("refetches the list on a projects event", async () => {
         const { server } = await setup()
         await waitForRows()
