@@ -75,7 +75,7 @@ describe("reading", () => {
         const { projects } = (await req("/api/projects")).json()
         expect(projects[0]).toMatchObject({ id: "demo", path: project, purpose: "Demo project", open: 5, done: 1, dropped: 1 })
         expect(projects[0].phases).toEqual({ now: 1, next: 1, later: 1, wayLater: 1, maybe: 1 })
-        expect(projects[0].now).toEqual([{ id: "alpha", title: expect.any(String), status: "planned" }])
+        expect(projects[0].now).toEqual([{ id: "alpha", title: expect.any(String), status: "planned", size: "S" }])
         expect(projects[1]).toMatchObject({ id: "other", open: 0, error: expect.stringMatching(/not valid JSON/) })
     })
 

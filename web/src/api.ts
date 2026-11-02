@@ -3,7 +3,8 @@ import type { Op } from "../../src/core/ops.ts"
 
 // Every request the dashboard makes, so tests can stub `fetch` and `EventSource` in one place.
 
-export type NowItem = { id: string; title: string; status: Item["status"] }
+export type NowItem = { id: string; title: string; status: Item["status"]; size?: Item["size"] }
+export type DoneItem = { id: string; title: string; note?: string; updated: string }
 export type ProjectSummary = {
     id: string
     path: string
@@ -14,6 +15,10 @@ export type ProjectSummary = {
     percent: number
     phases: Partial<Record<Item["phase"], number>>
     now: NowItem[]
+    next: NowItem[]
+    // Newest item date, YYYY-MM-DD.
+    updated?: string
+    recent: DoneItem[]
     error?: string
 }
 export type ProjectData = { id: string; path: string; file: GoalsFile }

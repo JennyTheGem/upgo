@@ -2,6 +2,7 @@ import "./projectView.css"
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
 import { summarize } from "../../../src/core/summary.ts"
 import type { Item, Section } from "../../../src/core/schema.ts"
+import { isOpenStatus } from "../../../src/core/vocab.ts"
 import { api, errorText } from "../api.ts"
 import Button from "../primitives/button/Button.tsx"
 import { confirmAction } from "../primitives/confirmDialog/confirm.ts"
@@ -14,7 +15,7 @@ import SelectionBar from "../primitives/selectionBar/SelectionBar.tsx"
 import { toast } from "../primitives/toast/toast.ts"
 import FilterBar from "./FilterBar.tsx"
 import { NO_FILTERS, groupItems, type Filters, type Group } from "./filters.ts"
-import { formatForAgent } from "./format.ts"
+import { copyForAgent } from "./format.ts"
 import ItemModal from "./ItemModal.tsx"
 import { itemMenu, sectionMenu, type ItemActions, type SectionActions } from "./itemMenu.ts"
 import ItemRow, { type RowApi } from "./ItemRow.tsx"
@@ -77,7 +78,11 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
     const loaded = !!file
     useEffect(() => {
         const item = loaded && focus ? file?.items.find((i) => i.id === focus) : undefined
-        if (item) scrollToItem(item)
+        if (!item) return
+        // A done item (from the tour's recently done) only shows with closed items on. Runs once, so no cascade.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (!isOpenStatus(item.status)) setFilters({ ...NO_FILTERS, showClosed: true })
+        scrollToItem(item)
         // Once, when the project first loads.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loaded])
@@ -128,15 +133,6 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
         scrollToItem(item)
     }
 
-    const copy = async (items: Item[]) => {
-        try {
-            await navigator.clipboard.writeText(formatForAgent(items))
-            toast.success(items.length === 1 ? `Copied ${items[0].id}` : `Copied ${items.length} items`)
-        } catch {
-            toast.error("Could not copy: the clipboard is not available")
-        }
-    }
-
     const items: ItemActions = {
         edit: (item) => setEditing({ item }),
         phase: (item, phase) => run({ op: "edit", id: item.id, patch: { phase } }),
@@ -161,7 +157,7 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
             refocus.current = item.id
             run(dir === "up" ? { op: "move", id: item.id, before: other.id } : { op: "move", id: item.id, after: other.id })
         },
-        copy,
+        copy: copyForAgent,
         remove: async (item) => {
             const ok = await confirmAction({
                 message: `Delete "${item.title}"?`,
@@ -252,6 +248,7 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
             <Stage
                 summary={summarize(file)}
                 onPick={jump}
+                onPromote={(itemId) => run({ op: "edit", id: itemId, patch: { phase: "now" } })}
                 title={<h1 className="stageHeading truncate">{data.id}</h1>}
                 meta={
                     <>
@@ -317,7 +314,7 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
 
             {pickedItems.length > 0 && (
                 <SelectionBar count={pickedItems.length} onExit={() => setPicked(new Set())}>
-                    <Button variant="primary" imgProps={{ img: "iconify:content-copy" }} onClick={() => copy(pickedItems)}>
+                    <Button variant="primary" imgProps={{ img: "iconify:content-copy" }} onClick={() => copyForAgent(pickedItems)}>
                         Copy
                     </Button>
                 </SelectionBar>

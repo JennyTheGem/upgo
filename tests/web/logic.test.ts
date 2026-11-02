@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { isFinished } from "../../web/src/goals/counts.ts"
+import { ago, daysSince, isFinished } from "../../web/src/goals/counts.ts"
 import { formatForAgent } from "../../web/src/goals/format.ts"
 import { NO_FILTERS, groupItems } from "../../web/src/goals/filters.ts"
 import { diffPatch, fromForm, toForm } from "../../web/src/goals/itemForm.ts"
@@ -44,5 +44,20 @@ describe("isFinished", () => {
         expect(isFinished({ done: 3, open: 1, phases: { later: 1 } })).toBe(false)
         expect(isFinished({ done: 0, open: 0, phases: {} })).toBe(false)
         expect(isFinished({ done: 3, open: 0, phases: {}, error: "bad json" })).toBe(false)
+    })
+})
+
+describe("ago", () => {
+    it("counts local days and rounds to days, weeks, then months", () => {
+        const now = new Date(2026, 10, 2, 23, 30)
+        expect(daysSince("2026-11-02", now)).toBe(0)
+        expect(daysSince("2026-11-09", now)).toBe(0)
+        expect(["2026-11-02", "2026-11-01", "2026-10-26", "2026-10-19", "2026-08-01"].map((d) => ago(d, now))).toEqual([
+            "today",
+            "yesterday",
+            "7d ago",
+            "2w ago",
+            "3mo ago",
+        ])
     })
 })

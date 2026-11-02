@@ -82,6 +82,61 @@
       "note": "percentDone in src/core/summary.ts, S=1 M=2 L=4, unsized=M; used by Stage, Tour, section bars. Check: tests/summary.test.ts"
     },
     {
+      "id": "tour-copy-now",
+      "section": 2,
+      "title": "Copy now items from the Tour",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-02",
+      "updated": "2026-11-02",
+      "note": "shipped in the Tour/Setlist update"
+    },
+    {
+      "id": "setlist-up-next",
+      "section": 2,
+      "title": "Show up next with move to now when nothing is in now",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-02",
+      "updated": "2026-11-02",
+      "note": "shipped in the Tour/Setlist update"
+    },
+    {
+      "id": "tour-last-touched",
+      "section": 2,
+      "title": "Last touched per project on the Tour, stale tint, recency sort",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-02",
+      "updated": "2026-11-02",
+      "note": "shipped in the Tour/Setlist update"
+    },
+    {
+      "id": "tour-recently-done",
+      "section": 2,
+      "title": "Recently done strip on the Tour",
+      "phase": "later",
+      "status": "done",
+      "size": "M",
+      "created": "2026-11-02",
+      "updated": "2026-11-02",
+      "note": "shipped in the Tour/Setlist update"
+    },
+    {
+      "id": "setlist-size-badges",
+      "section": 2,
+      "title": "Size badges on setlist items",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-02",
+      "updated": "2026-11-02",
+      "note": "shipped in the Tour/Setlist update"
+    },
+    {
       "id": "migrate-rest",
       "section": 3,
       "title": "Migrate remaining repos to upgo",

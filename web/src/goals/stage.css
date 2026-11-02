@@ -107,6 +107,46 @@
     overflow-wrap: anywhere;
 }
 
+.setlistTags {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--gap-xs);
+    align-self: center;
+}
+
+.setlistTags:empty {
+    display: none;
+}
+
+.setlistUpNext {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-2xs);
+}
+
+/* An up-next song beside its move-to-now button. */
+.setlistNextRow {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-xs);
+
+    .setlistSong {
+        flex: 1;
+        min-width: 0;
+        opacity: .8;
+    }
+
+    .buttonIcon {
+        flex-shrink: 0;
+        opacity: .55;
+    }
+
+    .buttonIcon:hover,
+    .buttonIcon:focus-visible {
+        opacity: 1;
+    }
+}
+
 .setlistPartial {
     color: var(--tone-amber);
     font-weight: 600;

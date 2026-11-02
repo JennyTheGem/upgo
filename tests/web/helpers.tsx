@@ -75,7 +75,7 @@ export function fakeServer(initial: Record<string, FakeProject>) {
     let rejection: string | null = null
 
     const summary = (id: string, p: FakeProject) =>
-        p.file ? { id, path: p.path, ...summarize(p.file) } : { id, path: p.path, open: 0, done: 0, dropped: 0, percent: 0, phases: {}, now: [], error: p.error }
+        p.file ? { id, path: p.path, ...summarize(p.file) } : { id, path: p.path, open: 0, done: 0, dropped: 0, percent: 0, phases: {}, now: [], next: [], recent: [], error: p.error }
 
     const handle = async (url: string, init?: RequestInit): Promise<Reply> => {
         if (url === "/api/projects") return reply(200, { projects: Object.entries(state).map(([id, p]) => summary(id, p)) })

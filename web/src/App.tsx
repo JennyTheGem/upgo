@@ -60,7 +60,7 @@ export default function App() {
                 }
             />
         )
-    else if (selected === TOUR) main = <Tour projects={projects} onOpen={select} />
+    else if (selected === TOUR) main = <Tour projects={projects} onOpen={select} onChanged={load} />
     // A fallback project (the picked one vanished) must not inherit the picked one's focus.
     else main = <ProjectView key={selected} id={selected} focus={focus?.project === selected ? focus.item : null} onChanged={load} />
 

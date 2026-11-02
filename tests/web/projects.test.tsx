@@ -2,7 +2,7 @@
 import { cleanup, screen, within } from "@testing-library/react"
 import { render } from "@testing-library/react"
 import App from "../../web/src/App.tsx"
-import { emit, rowIds, setup, toggleOf, waitForRows } from "./helpers.tsx"
+import { emit, item, projects, rowIds, setup, toggleOf, waitForRows } from "./helpers.tsx"
 
 afterEach(() => {
     vi.unstubAllGlobals()
@@ -62,6 +62,35 @@ describe("project list", () => {
         await waitForRows()
         expect(toggleOf("audio-profiles")).toHaveAttribute("aria-expanded", "true")
         expect(within(screen.getByRole("region", { name: "Now" })).getAllByRole("listitem")).toHaveLength(1)
+    })
+
+    it("tour copies a project's now items, shows recently done and opens one", async () => {
+        const { user } = await setup()
+        await user.click(screen.getByRole("button", { name: /^Tour/ }))
+        const tour = screen.getByRole("region", { name: "Tour" })
+        await user.click(within(tour).getByRole("button", { name: "Copy alpha now items" }))
+        expect(await screen.findByText("Copied audio-profiles")).toBeInTheDocument()
+        expect(await navigator.clipboard.readText()).toBe("audio-profiles: Audio profiles")
+
+        const recent = within(tour).getByRole("region", { name: "Recently done" })
+        expect(within(recent).getByText("shipped")).toBeInTheDocument()
+        await user.click(within(recent).getByRole("button", { name: /Folder browse/ }))
+        await waitForRows()
+        expect(toggleOf("folder-browse")).toHaveAttribute("aria-expanded", "true")
+    })
+
+    it("tour offers next items when nothing is in now and moves one up", async () => {
+        const initial = projects()
+        initial.beta.file!.items = [item("beta-thing", 1, "Beta thing", { size: "L" })]
+        const { user, server } = await setup(initial)
+        await user.click(screen.getByRole("button", { name: /^Tour/ }))
+        const tour = screen.getByRole("region", { name: "Tour" })
+        expect(within(tour).getByText("Nothing in now. Up next:")).toBeInTheDocument()
+        expect(within(tour).queryByRole("button", { name: "Copy beta now items" })).toBeNull()
+        await user.click(within(tour).getByRole("button", { name: "Move Beta thing to now" }))
+        expect(server.ops.at(-1)).toEqual({ op: "edit", id: "beta-thing", patch: { phase: "now" } })
+        expect(await within(tour).findByRole("button", { name: "Copy beta now items" })).toBeInTheDocument()
+        expect(within(tour).getByRole("button", { name: /^Beta thing/ })).toHaveFocus()
     })
 
     it("removes a project after confirming, even an unreadable one", async () => {
