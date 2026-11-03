@@ -8,6 +8,7 @@ import ConfirmDialog from "./primitives/confirmDialog/ConfirmDialog.tsx"
 import EmptyState from "./primitives/emptyState/EmptyState.tsx"
 import ErrorState from "./primitives/errorState/ErrorState.tsx"
 import PromptDialog from "./primitives/promptDialog/PromptDialog.tsx"
+import { toast } from "./primitives/toast/toast.ts"
 import ToastViewport from "./primitives/toast/ToastViewport.tsx"
 import { readPref, writePref } from "./utils/storage.ts"
 
@@ -46,6 +47,8 @@ export default function App() {
         setFocus(item ? { project: id, item } : null)
         writePref(PICKED, id)
     }
+    // A related chip may point at a project that is not registered here.
+    const open = (id: string, item: string) => (projects?.some((p) => p.id === id) ? select(id, item) : toast.error(`Project ${id} is not registered`))
 
     let main
     if (!projects) main = error ? <ErrorState className="uiContentContainer" message={error} onRetry={load} /> : null
@@ -62,7 +65,7 @@ export default function App() {
         )
     else if (selected === TOUR) main = <Tour projects={projects} onOpen={select} onChanged={load} />
     // A fallback project (the picked one vanished) must not inherit the picked one's focus.
-    else main = <ProjectView key={selected} id={selected} focus={focus?.project === selected ? focus.item : null} onChanged={load} />
+    else main = <ProjectView key={selected} id={selected} focus={focus?.project === selected ? focus.item : null} onChanged={load} onOpen={open} />
 
     return (
         <div className="appShell outfit">

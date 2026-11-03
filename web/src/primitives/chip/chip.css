@@ -36,3 +36,6 @@
     letter-spacing: .1em;
     font-weight: 700;
 }
+
+.chip--button:hover { background-color: color-mix(in srgb, var(--chip-tone) 18%, transparent); }
+.chip--button:focus-visible { outline: 2px solid var(--chip-tone); outline-offset: 2px; }

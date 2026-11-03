@@ -114,6 +114,15 @@ describe("suggestions", () => {
         expect([r.status, r.json().suggestions]).toEqual([200, [{ id: "b", title: "B", created: "2026-11-03" }]])
         expect(readSuggestions(project).map((s) => s.id)).toEqual(["b"])
     })
+
+    it("still serves the goals when suggestions.json is broken", async () => {
+        writeFileSync(join(project, "suggestions.json"), "{")
+        const r = await req("/api/projects/demo")
+        expect(r.status).toBe(200)
+        expect(r.json().file.items.length).toBeGreaterThan(0)
+        expect(r.json().suggestions).toEqual([])
+        expect(r.json().suggestionsError).toMatch(/suggestions[.]json is not valid JSON/)
+    })
 })
 
 describe("writing", () => {

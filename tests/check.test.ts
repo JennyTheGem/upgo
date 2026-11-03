@@ -65,6 +65,14 @@ describe("checkProject", () => {
         expect(checkProject(dir, [])[0]).toMatch(/^items\.0\.phase:/)
     })
 
+    it("reports a broken or invalid suggestions.json", async () => {
+        const dir = await makeProject()
+        writeFileSync(join(dir, "suggestions.json"), "{")
+        expect(checkProject(dir, [])).toEqual([expect.stringMatching(/^suggestions[.]json is not valid JSON/)])
+        writeFileSync(join(dir, "suggestions.json"), JSON.stringify({ version: 1, suggestions: [{ id: "x" }] }))
+        expect(checkProject(dir, [])).toEqual([expect.stringMatching(/^suggestions[.]json does not match the schema: suggestions[.]0[.]title/)])
+    })
+
     it("reports local rule breaks", () => {
         const f = fixture()
         f.items.push({ ...f.items[0] })

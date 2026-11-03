@@ -10,6 +10,4 @@ Closed sections: §2 Dashboard · §3 Rollout
 
 ## 1. CLI and core
 
-- `related-chips-jump-to-the-item` Related chips jump to the item (next)
-- `broken-suggestions-json-should-not-break-the` Broken suggestions.json should not break the project (next)
 - Plus 1 maybe: `upgo list --section 1 --phase maybe`

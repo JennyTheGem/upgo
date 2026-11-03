@@ -40,7 +40,7 @@ Writing (each command validates and regenerates goals.md)
 
 Setup and checks
   upgo init [--id slug] [--purpose text] [--no-hooks]   register this folder, install git + Claude hooks
-  upgo check [--all]                  validate (schema, rules, related, detail files, goals.md in sync)
+  upgo check [--all]                  validate (schema, rules, related, detail files, suggestions.json, goals.md in sync)
   upgo render                         rewrite goals.md from goals.json
   upgo import <goals.md> [--completed path] [--out file] [--id slug] [--force]
   upgo forget <id>                    drop a project from the registry

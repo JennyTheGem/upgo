@@ -60,7 +60,8 @@ function scrollToItem(item: Item, step = 0) {
 }
 
 // `focus` opens one item once the project loads (a pick on the tour's setlist).
-export default function ProjectView({ id, focus, onChanged }: { id: string; focus?: string | null; onChanged: () => void }) {
+// `onOpen` jumps to an item in another project.
+export default function ProjectView({ id, focus, onChanged, onOpen }: { id: string; focus?: string | null; onChanged: () => void; onOpen: (project: string, item: string) => void }) {
     const { data, error, reload, run, dismiss } = useProject(id, onChanged)
     const [filters, setFilters] = useState<Filters>(NO_FILTERS)
     const [expanded, setExpanded] = useState<Set<string>>(() => new Set(focus ? [focus] : []))
@@ -83,8 +84,9 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
 
     const loaded = !!file
     useEffect(() => {
-        const item = loaded && focus ? file?.items.find((i) => i.id === focus) : undefined
-        if (!item) return
+        if (!loaded || !focus) return
+        const item = file?.items.find((i) => i.id === focus)
+        if (!item) return void toast.error(`No item ${focus} in ${id}`)
         // A done item (from the tour's recently done) only shows with closed items on. Runs once, so no cascade.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         if (!isOpenStatus(item.status)) setFilters({ ...NO_FILTERS, showClosed: true })
@@ -130,12 +132,12 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
 
     const pickedItems = file.items.filter((i) => picked.has(i.id))
 
-    // A pick from the setlist: drop filters that hide it, expand it, scroll to it.
+    // A pick from the setlist or a related chip: drop filters that hide it, expand it, scroll to it.
     const jump = (itemId: string) => {
         const item = file.items.find((i) => i.id === itemId)
-        if (!item) return
+        if (!item) return void toast.error(`No item ${itemId} in ${id}`)
         setTab("goals")
-        if (!visible.includes(item)) setFilters(NO_FILTERS)
+        if (!visible.includes(item)) setFilters({ ...NO_FILTERS, showClosed: !isOpenStatus(item.status) })
         setExpanded((s) => toggled(s, [itemId], true))
         scrollToItem(item)
     }
@@ -210,6 +212,11 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
 
     const rowApi: RowApi = {
         projectId: id,
+        openRelated: (ref) => {
+            const [project, itemId] = ref.split(":")
+            if (project === id) jump(itemId)
+            else onOpen(project, itemId)
+        },
         toggle: (itemId) => setExpanded((s) => toggled(s, [itemId], !s.has(itemId))),
         select: (itemId, shift) => {
             const order = visible.map((i) => i.id)
@@ -282,7 +289,7 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
 
             <div className="projectTabPanel" id="project-tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
                 {tab === "suggestions" ? (
-                    <SuggestionsPanel suggestions={data.suggestions} canAdopt={file.sections.length > 0} onAdopt={setAdopting} onDismiss={dismiss} />
+                    <SuggestionsPanel suggestions={data.suggestions} error={data.suggestionsError} canAdopt={file.sections.length > 0} onAdopt={setAdopting} onDismiss={dismiss} />
                 ) : (
                     <>
                         {file.traps.length > 0 && <TrapsPanel traps={file.traps} />}

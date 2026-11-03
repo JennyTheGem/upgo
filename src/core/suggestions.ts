@@ -26,6 +26,17 @@ export function readSuggestions(dir: string): Suggestion[] {
     return parse(raw)
 }
 
+// For readers that carry on past a broken file: the list, or what is wrong with it.
+export function trySuggestions(dir: string): { suggestions: Suggestion[]; suggestionsError?: string } {
+    try {
+        return { suggestions: readSuggestions(dir) }
+    } catch (e) {
+        if (!(e instanceof UpgoError)) throw e
+        // One line: the message carries the details as a list too.
+        return { suggestions: [], suggestionsError: [e.message.split("\n")[0], e.details.join("; ")].filter(Boolean).join(" ") }
+    }
+}
+
 export async function updateSuggestions(dir: string, mutate: (list: Suggestion[]) => Suggestion[]): Promise<Suggestion[]> {
     const path = join(dir, SUGGESTIONS)
     return withLock(path, async () => {

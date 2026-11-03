@@ -4,6 +4,7 @@ import { readRegistry, type Entry } from "./registry.ts"
 import { render } from "./render.ts"
 import { localIssues } from "./rules.ts"
 import { GOALS, MD, readGoals } from "./store.ts"
+import { trySuggestions } from "./suggestions.ts"
 import type { GoalsFile } from "./schema.ts"
 import { UpgoError } from "./util.ts"
 
@@ -45,6 +46,9 @@ export function checkProject(dir: string, registry: Entry[] = readRegistry()): s
         }
         if (item.detail && !existsSync(resolve(dir, item.detail))) issues.push(`item \`${item.id}\`: detail file ${item.detail} does not exist`)
     }
+
+    const { suggestionsError } = trySuggestions(dir)
+    if (suggestionsError) issues.push(suggestionsError)
 
     const mdPath = join(dir, MD)
     if (!existsSync(mdPath)) issues.push(`${MD} is missing, run \`upgo render\``)

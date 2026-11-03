@@ -8,7 +8,7 @@ import { forget, readRegistry, registryPath, UPGO_DIR, type Entry } from "./src/
 import { formatIssues, PHASES, slug } from "./src/core/schema.ts"
 import { summarize } from "./src/core/summary.ts"
 import { GOALS, readGoals, updateGoals } from "./src/core/store.ts"
-import { readSuggestions, removeSuggestions, SUGGESTIONS, updateSuggestions } from "./src/core/suggestions.ts"
+import { removeSuggestions, SUGGESTIONS, trySuggestions, updateSuggestions } from "./src/core/suggestions.ts"
 import { today, UpgoError } from "./src/core/util.ts"
 
 export type ServerOptions = { port?: number; staticDir?: string; dev?: boolean }
@@ -157,7 +157,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
         const entry = entryFor(parts[1])
         if (!entry) return fail(res, 404, `no registered project \`${parts[1]}\``)
 
-        if (method === "GET" && parts.length === 2) return send(res, 200, { id: entry.id, path: entry.path, file: readGoals(entry.path), suggestions: readSuggestions(entry.path) })
+        if (method === "GET" && parts.length === 2) return send(res, 200, { id: entry.id, path: entry.path, file: readGoals(entry.path), ...trySuggestions(entry.path) })
 
         if (method === "GET" && parts.length === 4 && parts[2] === "detail") {
             const item = readGoals(entry.path).items.find((i) => i.id === parts[3])

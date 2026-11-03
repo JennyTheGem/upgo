@@ -335,9 +335,10 @@
       "title": "Related chips jump to the item",
       "body": "Related refs render as plain chips. App already opens a project at an item (`select(id, item)`), so a click can jump there, across projects too. Size S.",
       "phase": "next",
-      "status": "planned",
+      "status": "done",
       "created": "2026-11-03",
-      "updated": "2026-11-03"
+      "updated": "2026-11-04",
+      "note": "Related chips are buttons: same project jumps locally (shows closed items), other project opens it at the item, unknown project or item toasts"
     },
     {
       "id": "render-markdown-in-the-dashboard",
@@ -377,9 +378,10 @@
       "title": "Broken suggestions.json should not break the project",
       "body": "If suggestions.json is invalid, GET /api/projects/:id fails and the whole project shows an error instead of its goals. Have the server return the goals with a suggestions error shown in the panel, and have upgo check validate suggestions.json too.",
       "phase": "next",
-      "status": "planned",
+      "status": "done",
       "created": "2026-11-03",
-      "updated": "2026-11-03"
+      "updated": "2026-11-04",
+      "note": "Server returns goals plus suggestionsError shown in the Suggestions panel; upgo check reports a broken suggestions.json"
     }
   ]
 }

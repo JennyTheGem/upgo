@@ -4,11 +4,13 @@ import Button from "../primitives/button/Button.tsx"
 import Dropdown, { type DropdownEntry } from "../primitives/dropdown/dropdown.tsx"
 import { useDropdownTrigger } from "../primitives/dropdown/useDropdownTrigger.ts"
 import EmptyState from "../primitives/emptyState/EmptyState.tsx"
+import ErrorState from "../primitives/errorState/ErrorState.tsx"
 import SelectionBar from "../primitives/selectionBar/SelectionBar.tsx"
 import { copyForAgent } from "./format.ts"
 
 type Props = {
     suggestions: Suggestion[]
+    error?: string
     canAdopt: boolean
     onAdopt: (list: Suggestion[]) => void
     onDismiss: (ids: string[]) => Promise<boolean>
@@ -21,13 +23,14 @@ const toggled = (set: Set<string>, id: string) => {
 }
 
 // Agents add these with `upgo suggestion add`. Rows look and act like goal rows.
-export default function SuggestionsPanel({ suggestions, canAdopt, onAdopt, onDismiss }: Props) {
+export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt, onDismiss }: Props) {
     const [ticked, setTicked] = useState<Set<string>>(new Set())
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
     const menu = useDropdownTrigger()
     const chosen = suggestions.filter((s) => ticked.has(s.id))
     const adoptTitle = canAdopt ? undefined : "Add a section first"
 
+    if (error) return <ErrorState className="uiContentContainer" message={error} />
     if (!suggestions.length) {
         return (
             <EmptyState

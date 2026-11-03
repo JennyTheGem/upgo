@@ -49,6 +49,15 @@ describe("suggestions tab", () => {
         expect(screen.getByText(/No suggestions/)).toBeInTheDocument()
     })
 
+    it("shows a broken suggestions.json in the panel and keeps the goals", async () => {
+        const initial = projects()
+        initial.alpha.suggestionsError = "suggestions.json is not valid JSON: oops"
+        const { user } = await setup(initial)
+        await waitForRows()
+        await user.click(screen.getByRole("tab", { name: "Suggestions" }))
+        expect(screen.getByRole("alert")).toHaveTextContent("suggestions.json is not valid JSON: oops")
+    })
+
     it("expands a row to show its body", async () => {
         const { user } = await setup(withSuggestions())
         const panel = await openTab(user)

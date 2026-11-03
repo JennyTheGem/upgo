@@ -69,7 +69,7 @@ Every command works from inside the project folder, or anywhere with `--dir <pat
 - **`goals.md`** (committed, generated): what CLAUDE.md auto-loads with `@goals.md`. Traps, then the open now/next/later items one line each; way later and maybe show as counts; done and dropped never appear.
 - **`suggestions.json`** (gitignored by `upgo init` in a git repo): ideas an agent left for the user, managed with `upgo suggestion`, never in `goals.md`.
 - **`docs/goalsDetails/*.md`**: long-form detail for an open item, linked through `detail`.
-- **Hooks** installed by `upgo init`: a git pre-commit that runs `upgo check` (a broken `goals.json` or a stale `goals.md` blocks the commit), and a PreToolUse hook in the repo's `.claude/settings.json` that stops agents from editing `goals.json`, `goals.md` and `suggestions.json` by hand.
+- **Hooks** installed by `upgo init`: a git pre-commit that runs `upgo check` (a broken `goals.json` or `suggestions.json`, or a stale `goals.md`, blocks the commit), and a PreToolUse hook in the repo's `.claude/settings.json` that stops agents from editing `goals.json`, `goals.md` and `suggestions.json` by hand.
 
 Outside the projects, in this folder: `registry.json` (which projects exist; `UPGO_REGISTRY` overrides the path, tests use it) and the dashboard.
 

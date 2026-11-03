@@ -7,7 +7,7 @@ import { formatIssues, type GoalsFile, type Item, type Suggestion } from "../../
 import { summarize } from "../../src/core/summary.ts"
 import { localIssues } from "../../src/core/rules.ts"
 
-export type FakeProject = { path: string; file?: GoalsFile; suggestions?: Suggestion[]; error?: string; details?: Record<string, string> }
+export type FakeProject = { path: string; file?: GoalsFile; suggestions?: Suggestion[]; suggestionsError?: string; error?: string; details?: Record<string, string> }
 
 export const DAY = "2026-10-12"
 
@@ -120,7 +120,7 @@ export function fakeServer(initial: Record<string, FakeProject>) {
             return text === undefined ? reply(404, { error: "no detail file" }) : reply(200, { path: `${p.path}/detail.md`, text })
         }
         if (p.error) return reply(500, { error: p.error })
-        return reply(200, { id, path: p.path, file: p.file, suggestions: p.suggestions ?? [] })
+        return reply(200, { id, path: p.path, file: p.file, suggestions: p.suggestions ?? [], suggestionsError: p.suggestionsError })
     }
 
     const fetch = vi.fn(handle)

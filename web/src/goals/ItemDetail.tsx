@@ -6,7 +6,7 @@ import Button from "../primitives/button/Button.tsx"
 import Chip from "../primitives/chip/Chip.tsx"
 import { toast } from "../primitives/toast/toast.ts"
 
-export default function ItemDetail({ item, projectId }: { item: Item; projectId: string }) {
+export default function ItemDetail({ item, projectId, onOpen }: { item: Item; projectId: string; onOpen: (ref: string) => void }) {
     const [file, setFile] = useState<{ path: string; text: string } | null>(null)
     const [loading, setLoading] = useState(false)
     const pointers = POINTER_KEYS.filter((k) => item.pointers?.[k]?.length)
@@ -44,7 +44,7 @@ export default function ItemDetail({ item, projectId }: { item: Item; projectId:
                 <div className="itemMeta">
                     <span className="microLabel">Related</span>
                     {item.related.map((r) => (
-                        <Chip key={r} mono>
+                        <Chip key={r} mono title={`Open ${r}`} onClick={() => onOpen(r)}>
                             {r}
                         </Chip>
                     ))}

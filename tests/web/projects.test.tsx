@@ -49,6 +49,26 @@ describe("project list", () => {
         expect(screen.getByText("None registered yet.")).toBeInTheDocument()
     })
 
+    it("related chips jump to the item, in this project or another", async () => {
+        const initial = projects()
+        initial.alpha.file!.items[0].related = ["alpha:folder-browse", "alpha:nope", "ghost:x", "beta:beta-thing"]
+        initial.beta.file!.items[0].related = ["alpha:gone"]
+        const { user } = await setup(initial)
+        await waitForRows()
+        await user.click(toggleOf("one-device"))
+        await user.click(screen.getByRole("button", { name: "alpha:folder-browse" }))
+        expect(toggleOf("folder-browse")).toHaveAttribute("aria-expanded", "true")
+        await user.click(screen.getByRole("button", { name: "ghost:x" }))
+        expect(await screen.findByRole("alert")).toHaveTextContent("Project ghost is not registered")
+        await user.click(screen.getByRole("button", { name: "alpha:nope" }))
+        expect(await screen.findByRole("alert")).toHaveTextContent("No item nope in alpha")
+        await user.click(screen.getByRole("button", { name: "beta:beta-thing" }))
+        expect(await screen.findByRole("heading", { name: "Core" })).toBeInTheDocument()
+        expect(toggleOf("beta-thing")).toHaveAttribute("aria-expanded", "true")
+        await user.click(screen.getByRole("button", { name: "alpha:gone" }))
+        expect(await screen.findByText("No item gone in alpha")).toBeInTheDocument()
+    })
+
     it("tour lists every project's now items and opens one in its project", async () => {
         const { user } = await setup()
         await waitForRows()

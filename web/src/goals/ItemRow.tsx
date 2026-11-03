@@ -11,6 +11,8 @@ export type DropTarget = { before: string } | { section: number }
 
 export type RowApi = {
     projectId: string
+    // A related ref, `project:item`.
+    openRelated: (ref: string) => void
     toggle: (id: string) => void
     select: (id: string, shift: boolean) => void
     menuAt: (item: Item, e: MouseEvent) => void
@@ -94,7 +96,7 @@ export default function ItemRow({ item, expanded, selected, dropBefore, api, ref
                     onClick={(e) => api.menuFrom(item, e.currentTarget)}
                 />
             </div>
-            {expanded && <ItemDetail item={item} projectId={api.projectId} />}
+            {expanded && <ItemDetail item={item} projectId={api.projectId} onOpen={api.openRelated} />}
         </li>
     )
 }
