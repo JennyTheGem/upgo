@@ -142,11 +142,11 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
 
     const items: ItemActions = {
         edit: (item) => setEditing({ item }),
-        phase: (item, phase) => run({ op: "edit", id: item.id, patch: { phase } }),
-        status: (item, status) => run({ op: "edit", id: item.id, patch: { status } }),
+        phase: (item, phase) => run({ op: "edit", id: item.id, patch: { phase } }, true),
+        status: (item, status) => run({ op: "edit", id: item.id, patch: { status } }, true),
         done: async (item) => {
             const note = await promptText({ title: `Mark "${item.title}" done`, placeholder: "Note (optional)", confirmLabel: "Mark done", required: false })
-            if (note !== null) run(note ? { op: "done", id: item.id, note } : { op: "done", id: item.id })
+            if (note !== null) run(note ? { op: "done", id: item.id, note } : { op: "done", id: item.id }, true)
         },
         drop: async (item) => {
             const reason = await promptText({
@@ -155,14 +155,14 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
                 placeholder: "Reason",
                 confirmLabel: "Drop",
             })
-            if (reason) run({ op: "drop", id: item.id, reason })
+            if (reason) run({ op: "drop", id: item.id, reason }, true)
         },
-        reopen: (item) => run({ op: "reopen", id: item.id }),
+        reopen: (item) => run({ op: "reopen", id: item.id }, true),
         move: (item, dir) => {
             const other = neighbor(groups, item, dir)
             if (!other) return
             refocus.current = item.id
-            run(dir === "up" ? { op: "move", id: item.id, before: other.id } : { op: "move", id: item.id, after: other.id })
+            run(dir === "up" ? { op: "move", id: item.id, before: other.id } : { op: "move", id: item.id, after: other.id }, true)
         },
         copy: copyForAgent,
         remove: async (item) => {
@@ -172,7 +172,7 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
                 confirmLabel: "Delete",
                 variant: "destructive",
             })
-            if (ok) run({ op: "delete", id: item.id })
+            if (ok) run({ op: "delete", id: item.id }, true)
         },
     }
 
@@ -246,7 +246,7 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
             e.stopPropagation()
             endDrag()
             if ("before" in target && target.before === moving) return
-            run({ op: "move", id: moving, ...target })
+            run({ op: "move", id: moving, ...target }, true)
         },
     }
 
@@ -255,7 +255,7 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
             <Stage
                 summary={summarize(file)}
                 onPick={jump}
-                onPromote={(itemId) => run({ op: "edit", id: itemId, patch: { phase: "now" } })}
+                onPromote={(itemId) => run({ op: "edit", id: itemId, patch: { phase: "now" } }, true)}
                 title={<h1 className="stageHeading truncate">{data.id}</h1>}
                 meta={
                     <>

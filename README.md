@@ -55,6 +55,7 @@ upgo move <id> --section 3 | --before <id> | --after <id> | --up | --down
 upgo section list | add "Title" | rename 3 "Title" | move 3 --before 1 | delete 3
 upgo trap list | add "Title" --body "..." | edit <id> | delete <id>
 upgo suggestion list | add "Title" --body "..." | delete <id...>
+upgo suggestion promote <id> --section 1 [--phase next]   add it as a goal, remove the suggestion
 upgo check [--all]                             validate one or every project
 upgo render                                    rewrite goals.md from goals.json
 upgo ui [--port 4141] [--no-open]

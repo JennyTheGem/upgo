@@ -82,3 +82,20 @@ html[data-reduce-motion] .toastPill { animation: none; }
     border-radius: var(--radius-xs);
     line-height: 1.6;
 }
+
+.toastAction {
+    flex-shrink: 0;
+    margin-left: var(--gap-xs);
+    padding: 4px 10px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--color-white) 12%, transparent);
+    color: var(--color-white);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.toastAction:hover { background: color-mix(in srgb, var(--color-white) 20%, transparent); }
+.toastAction:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--color-focus-ring); }

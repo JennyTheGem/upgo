@@ -6,4 +6,10 @@ Structured goals for every project: a validating CLI for agents, a slim generate
 
 Open work only. Full item: `upgo show <id>`. Any slice: `upgo list --phase later,wayLater,maybe`, `--status done,dropped`, `--section <n>`, `--search <text>`.
 
-Closed sections: §1 CLI and core · §2 Dashboard · §3 Rollout
+Closed sections: §2 Dashboard · §3 Rollout
+
+## 1. CLI and core
+
+- `related-chips-jump-to-the-item` Related chips jump to the item (next)
+- `broken-suggestions-json-should-not-break-the` Broken suggestions.json should not break the project (next)
+- Plus 1 maybe: `upgo list --section 1 --phase maybe`

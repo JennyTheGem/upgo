@@ -3,6 +3,7 @@ import type { Op } from "../../../src/core/ops.ts"
 import { api, errorText, onServerEvent, type ProjectData } from "../api.ts"
 import { toast } from "../primitives/toast/toast.ts"
 import { optimistic } from "./optimistic.ts"
+import { undoFor } from "./undo.ts"
 
 export function useProject(id: string, onChanged: () => void) {
     const [data, setData] = useState<ProjectData | null>(null)
@@ -30,7 +31,7 @@ export function useProject(id: string, onChanged: () => void) {
 
     useEffect(() => onServerEvent((e) => e.type === "project" && e.id === id && reload()), [id, reload])
 
-    const run = useCallback(
+    const send = useCallback(
         async (op: Op): Promise<boolean> => {
             const before = latest.current
             if (!before) return false
@@ -52,6 +53,22 @@ export function useProject(id: string, onChanged: () => void) {
             }
         },
         [id, onChanged, reload],
+    )
+
+    // `undoable` puts an Undo button on a success toast that sends the inverse ops in order.
+    const run = useCallback(
+        async (op: Op, undoable = false): Promise<boolean> => {
+            const before = latest.current?.file
+            const ok = await send(op)
+            const undo = ok && undoable && before ? undoFor(before, op) : null
+            if (undo) {
+                toast.undoable(undo.message, async () => {
+                    for (const o of undo.ops) if (!(await send(o))) return
+                })
+            }
+            return ok
+        },
+        [send],
     )
 
     const dismiss = useCallback(

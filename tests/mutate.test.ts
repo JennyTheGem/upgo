@@ -176,7 +176,8 @@ describe("ops", () => {
             { op: "drop", id: "alpha", reason: " " },
             { op: "edit", id: "alpha", patch: { id: "x" } },
             { op: "edit", id: "alpha", patch: { phase: "soon" } },
-            { op: "add", item: { section: 1, title: "x", phase: "now", created: DAY } },
+            { op: "add", item: { section: 1, title: "x", phase: "now", updated: DAY } },
+            { op: "add", item: { section: 1, title: "x", phase: "now", created: "soon" } },
             { op: "move", id: "../etc" },
         ]) {
             expect(opSchema.safeParse(bad).success, JSON.stringify(bad)).toBe(false)

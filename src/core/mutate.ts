@@ -4,7 +4,7 @@ import { slugify, uniqueSlug, UpgoError } from "./util.ts"
 // Pure edits on a GoalsFile. Each returns a new file; the store validates and writes it.
 
 type Optional = "body" | "size" | "scope" | "pointers" | "detail" | "related" | "note"
-export type ItemInput = Omit<Item, "id" | "status" | "created" | "updated"> & { id?: string; status?: Status }
+export type ItemInput = Omit<Item, "id" | "status" | "created" | "updated"> & { id?: string; status?: Status; created?: string }
 export type ItemPatch = Partial<Pick<Item, "section" | "title" | "phase" | "status">> & { [K in Optional]?: Item[K] | null }
 export type Position = { section?: number; before?: string; after?: string }
 
@@ -21,9 +21,12 @@ function requireSection(f: GoalsFile, n: number): void {
 }
 
 // Position just after the last item of section `n`, so array order keeps sections together.
-function endOfSection(items: Item[], n: number): number {
-    for (let i = items.length - 1; i >= 0; i--) if (items[i].section === n) return i + 1
-    return items.length
+// An empty section goes before the first item of a later one, so an undo puts it back where it was.
+function endOfSection(f: GoalsFile, n: number): number {
+    for (let i = f.items.length - 1; i >= 0; i--) if (f.items[i].section === n) return i + 1
+    const later = new Set(f.sections.slice(f.sections.findIndex((s) => s.n === n) + 1).map((s) => s.n))
+    const next = f.items.findIndex((i) => later.has(i.section))
+    return next < 0 ? f.items.length : next
 }
 
 function applyPatch<T extends object>(target: T, patch: Record<string, unknown>): T {
@@ -42,8 +45,8 @@ export function addItem(file: GoalsFile, input: ItemInput, day: string): { file:
     const taken = new Set(f.items.map((i) => i.id))
     if (input.id && taken.has(input.id)) throw new UpgoError(`item id \`${input.id}\` already exists`)
     const id = input.id ?? uniqueSlug(slugify(input.title), taken)
-    const item = { ...input, id, status: input.status ?? "planned", created: day, updated: day } as Item
-    f.items.splice(endOfSection(f.items, item.section), 0, item)
+    const item = { ...input, id, status: input.status ?? "planned", created: input.created ?? day, updated: day } as Item
+    f.items.splice(endOfSection(f, item.section), 0, item)
     return { file: f, id }
 }
 
@@ -54,7 +57,7 @@ export function editItem(file: GoalsFile, id: string, patch: ItemPatch, day: str
         requireSection(f, patch.section)
         const [item] = f.items.splice(i, 1)
         const moved = applyPatch(item, { ...patch, updated: day })
-        f.items.splice(endOfSection(f.items, moved.section), 0, moved)
+        f.items.splice(endOfSection(f, moved.section), 0, moved)
         return f
     }
     f.items[i] = applyPatch(f.items[i], { ...patch, updated: day })
@@ -88,7 +91,7 @@ export function moveItem(file: GoalsFile, id: string, to: Position, day: string)
     }
     requireSection(f, section)
     const moved = section === item.section ? item : { ...item, section, updated: day }
-    const at = anchor ? f.items.indexOf(anchor) + (to.after ? 1 : 0) : endOfSection(f.items, section)
+    const at = anchor ? f.items.indexOf(anchor) + (to.after ? 1 : 0) : endOfSection(f, section)
     f.items.splice(at, 0, moved)
     return f
 }

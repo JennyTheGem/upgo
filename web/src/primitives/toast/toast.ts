@@ -1,7 +1,8 @@
 import { createStore } from "../../utils/store.ts"
 
 export type ToastVariant = "success" | "error" | "info" | "warning"
-export type ToastEntry = { id: number; variant: ToastVariant; message: string; duration: number }
+export type ToastAction = { label: string; run: () => void }
+export type ToastEntry = { id: number; variant: ToastVariant; message: string; duration: number; action?: ToastAction }
 
 const DURATIONS: Record<ToastVariant, number> = { success: 4000, info: 4000, warning: 5000, error: 6000 }
 
@@ -18,9 +19,13 @@ function schedule() {
     if (active?.duration) timer = setTimeout(() => dismissToast(active.id), active.duration)
 }
 
-function push(variant: ToastVariant, message: string): number {
+const ACTION_DURATION = 8000
+
+function push(variant: ToastVariant, message: string, action?: ToastAction): number {
     const id = nextId++
-    toastStore.set({ toasts: [{ id, variant, message, duration: DURATIONS[variant] }, ...toastStore.get().toasts] })
+    // One undo at a time: a newer action toast replaces the older one instead of queueing behind it.
+    const rest = toastStore.get().toasts.filter((t) => !(action && t.action))
+    toastStore.set({ toasts: [{ id, variant, message, duration: action ? ACTION_DURATION : DURATIONS[variant], action }, ...rest] })
     schedule()
     return id
 }
@@ -41,4 +46,5 @@ export const toast = {
     error: (message: string) => push("error", message),
     info: (message: string) => push("info", message),
     warning: (message: string) => push("warning", message),
+    undoable: (message: string, undo: () => void) => push("success", message, { label: "Undo", run: undo }),
 }

@@ -36,6 +36,7 @@ Writing (each command validates and regenerates goals.md)
   upgo trap list | add "<title>" [--body text] [--id slug] | edit <id> [--title t] [--body text] | delete <id>
   upgo purpose ["<text>" | --clear]
   upgo suggestion list | add "<title>" [--body text] | delete <id...>   ideas for the user, only when asked
+  upgo suggestion promote <id> --section N [--phase later]   turn a suggestion into a goal and remove it
 
 Setup and checks
   upgo init [--id slug] [--purpose text] [--no-hooks]   register this folder, install git + Claude hooks
@@ -483,9 +484,24 @@ async function run(argv: string[], io: Io): Promise<number> {
 
         case "suggestion": {
             const [sub, ...args] = rest
-            const { values, positionals } = parse(args, { ...TARGET, body: { type: "string" } })
+            const { values, positionals } = parse(args, { ...TARGET, body: { type: "string" }, section: { type: "string" }, phase: { type: "string" } })
             const dir = projectDir(values)
-            if (sub === "list") {
+            if (sub === "promote") {
+                const sid = need(positionals[0], "suggestion id")
+                const section = need(int("section", values.section), "--section")
+                const phase = oneOf("phase", values.phase, PHASES) ?? "later"
+                const s = readSuggestions(dir).find((x) => x.id === sid)
+                if (!s) throw new UpgoError(`no suggestion \`${sid}\``)
+                let added = ""
+                await updateGoals(dir, (file) => {
+                    const r = m.addItem(file, { title: s.title, section, phase, ...(s.body ? { body: s.body } : {}) }, day)
+                    added = r.id
+                    return r.file
+                })
+                // The goal is saved: one dismissed meanwhile must not turn this into an error.
+                await updateSuggestions(dir, (list) => list.filter((x) => x.id !== sid))
+                io.out(`promoted ${sid} to ${added}\n`)
+            } else if (sub === "list") {
                 const list = readSuggestions(dir)
                 if (!list.length) io.out("no suggestions\n")
                 for (const s of list) io.out(`\`${s.id}\` ${s.title}\n`)
@@ -502,7 +518,7 @@ async function run(argv: string[], io: Io): Promise<number> {
                 need(positionals[0], "suggestion id")
                 await updateSuggestions(dir, (list) => removeSuggestions(list, positionals))
                 io.out(`deleted ${positionals.join(", ")}\n`)
-            } else throw new UpgoError("usage: upgo suggestion list | add | delete")
+            } else throw new UpgoError("usage: upgo suggestion list | add | delete | promote")
             return 0
         }
 

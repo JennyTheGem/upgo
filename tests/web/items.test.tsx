@@ -153,6 +153,19 @@ describe("row actions", () => {
         await waitFor(() => expect(rowIds()).not.toContain("queue-snapshots"))
     })
 
+    it("undoes a delete from the toast", async () => {
+        const { user, server } = await setup()
+        await waitForRows()
+        await openMenu(user, "Queue snapshots")
+        await pick(user, "Delete")
+        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Delete" }))
+        await user.click(await screen.findByRole("button", { name: "Undo" }))
+        await waitFor(() => expect((server.ops.slice(1) as { op: string }[]).map((o) => o.op)).toEqual(["add", "move"]))
+        expect(server.ops[2]).toEqual({ op: "move", id: "queue-snapshots", after: "audio-profiles" })
+        await waitFor(() => expect(rowIds()).toContain("queue-snapshots"))
+        expect(screen.queryByRole("button", { name: "Undo" })).toBeNull()
+    })
+
     it("reopens a done item", async () => {
         const { user, server } = await setup()
         await waitForRows()

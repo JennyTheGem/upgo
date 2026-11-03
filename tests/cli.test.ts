@@ -310,6 +310,16 @@ describe("writing", () => {
         expect(readFileSync(join(cwd, GOALS), "utf8")).toBe(goals)
     })
 
+    it("promotes a suggestion to a goal and removes it", async () => {
+        const cwd = await registered()
+        ok(cli(["suggestion", "add", "Dark mode", "--body", "Users asked"], { cwd }))
+        fails(cli(["suggestion", "promote", "dark-mode"], { cwd }), /missing --section/)
+        fails(cli(["suggestion", "promote", "ghost", "--section", "1"], { cwd }), /no suggestion `ghost`/)
+        expect(ok(cli(["suggestion", "promote", "dark-mode", "--section", "1", "--phase", "next"], { cwd }))).toBe("promoted dark-mode to dark-mode\n")
+        expect(items(cwd).find((i) => i.id === "dark-mode")).toMatchObject({ title: "Dark mode", body: "Users asked", section: 1, phase: "next", status: "planned" })
+        expect(ok(cli(["suggestion", "list"], { cwd }))).toBe("no suggestions\n")
+    })
+
     it("targets another project with --dir and --project", async () => {
         const target = await registered()
         const nested = join(target, "deep", "er")

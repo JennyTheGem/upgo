@@ -43,6 +43,20 @@ export default function ToastViewport() {
                     </span>
                     <span className="toastMessage">{active.message}</span>
                     {toasts.length > 1 && <span className="toastBadge">+{toasts.length - 1}</span>}
+                    {active.action && (
+                        <button
+                            type="button"
+                            className="toastAction"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                dismissToast(active.id)
+                                active.action?.run()
+                            }}
+                            onKeyDown={(e) => e.key !== "Escape" && e.stopPropagation()}
+                        >
+                            {active.action.label}
+                        </button>
+                    )}
                 </span>
             </div>
         </div>

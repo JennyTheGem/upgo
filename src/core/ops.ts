@@ -11,6 +11,8 @@ const clearable = <T extends z.ZodType>(t: T) => t.nullable().optional()
 export const itemInputSchema = itemSchema.omit({ id: true, status: true, created: true, updated: true }).extend({
     id: slug.optional(),
     status: z.enum(STATUSES).optional(),
+    // Undoing a delete keeps the original date.
+    created: s.created.optional(),
 })
 
 export const itemPatchSchema = z.strictObject({
