@@ -15,6 +15,7 @@ Goals live in `goals.json`, managed by the `upgo` CLI. `goals.md` is generated f
 - Finished: `upgo done <id> --note "<one line on what shipped>"`. Half done: `upgo edit <id> --status partial`.
 - Found a new bug or gap: `upgo add "<title>" --section N --phase now|next|later --body "<why>" --files <path>` (also `--seam`, `--depends`, `--trap`, `--how`, `--check`, `--size S|M|L`, `--scope a,b`, `--detail docs/goalsDetails/x.md`).
 - Not doing it: `upgo drop <id> --reason "<why>"`, kept so nobody proposes it again. `upgo delete <id>` only for mistakes and duplicates.
+- Only when the user asks for suggestions or ideas: `upgo suggestion add "<title>" --body "<why>"` (one per idea). They land in `suggestions.json` and the dashboard's Suggestions panel, where the user copies them back to an agent or adds them to goals. `upgo suggestion list | delete <id...>`.
 - Something every agent must know before touching an area: `upgo trap add "<title>" --body "<detail>"`.
 - Long-form detail for an open item stays in `docs/goalsDetails/*.md`, linked with `--detail`.
 - `upgo check` must pass; the git pre-commit hook runs it. Commit `goals.json` and `goals.md` together.

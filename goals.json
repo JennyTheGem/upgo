@@ -137,6 +137,24 @@
       "note": "shipped in the Tour/Setlist update"
     },
     {
+      "id": "suggestions-panel",
+      "section": 2,
+      "title": "Suggestions tab",
+      "body": "Agents add ideas with upgo suggestion add (suggestions.json). Dashboard panel: tick to copy for an agent, add to goals, or dismiss.",
+      "phase": "now",
+      "status": "done",
+      "size": "M",
+      "pointers": {
+        "files": [
+          "src/core/suggestions.ts",
+          "web/src/goals/SuggestionsPanel.tsx"
+        ]
+      },
+      "created": "2026-11-03",
+      "updated": "2026-11-03",
+      "note": "upgo suggestion add|list|delete into gitignored suggestions.json; Goals/Suggestions tabs with goal-style rows: Add to goals, copy, dismiss"
+    },
+    {
       "id": "migrate-rest",
       "section": 3,
       "title": "Migrate remaining repos to upgo",

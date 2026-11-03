@@ -3,11 +3,11 @@ import userEvent from "@testing-library/user-event"
 import { vi } from "vitest"
 import App from "../../web/src/App.tsx"
 import { applyOp, opSchema } from "../../src/core/ops.ts"
-import { formatIssues, type GoalsFile, type Item } from "../../src/core/schema.ts"
+import { formatIssues, type GoalsFile, type Item, type Suggestion } from "../../src/core/schema.ts"
 import { summarize } from "../../src/core/summary.ts"
 import { localIssues } from "../../src/core/rules.ts"
 
-export type FakeProject = { path: string; file?: GoalsFile; error?: string; details?: Record<string, string> }
+export type FakeProject = { path: string; file?: GoalsFile; suggestions?: Suggestion[]; error?: string; details?: Record<string, string> }
 
 export const DAY = "2026-10-12"
 
@@ -79,7 +79,7 @@ export function fakeServer(initial: Record<string, FakeProject>) {
 
     const handle = async (url: string, init?: RequestInit): Promise<Reply> => {
         if (url === "/api/projects") return reply(200, { projects: Object.entries(state).map(([id, p]) => summary(id, p)) })
-        const m = url.match(/^\/api\/projects\/([^/]+)(?:\/(ops)|\/detail\/(.+))?$/)
+        const m = url.match(/^\/api\/projects\/([^/]+)(?:\/(ops)|\/detail\/(.+)|\/(suggestions))?$/)
         const id = m && decodeURIComponent(m[1])
         const p = id ? state[id] : undefined
         if (!m || !id || !p) return reply(404, { error: "not found" })
@@ -87,6 +87,12 @@ export function fakeServer(initial: Record<string, FakeProject>) {
             headers.push(init.headers as Record<string, string>)
             delete state[id]
             return reply(200, { id })
+        }
+        if (m[4]) {
+            const { dismiss } = JSON.parse(String(init?.body))
+            ops.push({ dismiss })
+            p.suggestions = (p.suggestions ?? []).filter((s) => !dismiss.includes(s.id))
+            return reply(200, { suggestions: p.suggestions })
         }
         if (m[2]) {
             const op = JSON.parse(String(init?.body))
@@ -114,7 +120,7 @@ export function fakeServer(initial: Record<string, FakeProject>) {
             return text === undefined ? reply(404, { error: "no detail file" }) : reply(200, { path: `${p.path}/detail.md`, text })
         }
         if (p.error) return reply(500, { error: p.error })
-        return reply(200, { id, path: p.path, file: p.file })
+        return reply(200, { id, path: p.path, file: p.file, suggestions: p.suggestions ?? [] })
     }
 
     const fetch = vi.fn(handle)

@@ -2,11 +2,13 @@ import http from "node:http"
 import { existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs"
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path"
 import { pathToFileURL } from "node:url"
+import { z } from "zod"
 import { applyOp, opSchema } from "./src/core/ops.ts"
 import { forget, readRegistry, registryPath, UPGO_DIR, type Entry } from "./src/core/registry.ts"
-import { formatIssues, PHASES } from "./src/core/schema.ts"
+import { formatIssues, PHASES, slug } from "./src/core/schema.ts"
 import { summarize } from "./src/core/summary.ts"
 import { GOALS, readGoals, updateGoals } from "./src/core/store.ts"
+import { readSuggestions, removeSuggestions, SUGGESTIONS, updateSuggestions } from "./src/core/suggestions.ts"
 import { today, UpgoError } from "./src/core/util.ts"
 
 export type ServerOptions = { port?: number; staticDir?: string; dev?: boolean }
@@ -16,6 +18,8 @@ const HOST = "127.0.0.1"
 const EMPTY_PHASES = Object.fromEntries(PHASES.map((p) => [p, 0]))
 const DEV_PORT = 5173
 const MAX_BODY = 1_000_000
+const WATCHED = [GOALS, SUGGESTIONS]
+const dismissSchema = z.strictObject({ dismiss: z.array(slug).min(1) })
 const TYPES: Record<string, string> = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
@@ -96,7 +100,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
             if (watchers.has(id) || !existsSync(path)) continue
             try {
                 const w = watch(path, (_event, filename) => {
-                    if (filename && basename(filename.toString()) === GOALS) debounce(`p:${id}`, () => broadcast("project", { id }))
+                    if (filename && WATCHED.includes(basename(filename.toString()))) debounce(`p:${id}`, () => broadcast("project", { id }))
                 })
                 w.on("error", () => watchers.delete(id))
                 watchers.set(id, w)
@@ -153,7 +157,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
         const entry = entryFor(parts[1])
         if (!entry) return fail(res, 404, `no registered project \`${parts[1]}\``)
 
-        if (method === "GET" && parts.length === 2) return send(res, 200, { id: entry.id, path: entry.path, file: readGoals(entry.path) })
+        if (method === "GET" && parts.length === 2) return send(res, 200, { id: entry.id, path: entry.path, file: readGoals(entry.path), suggestions: readSuggestions(entry.path) })
 
         if (method === "GET" && parts.length === 4 && parts[2] === "detail") {
             const item = readGoals(entry.path).items.find((i) => i.id === parts[3])
@@ -171,7 +175,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
             return send(res, 200, { id: entry.id })
         }
 
-        if (method === "POST" && parts.length === 3 && parts[2] === "ops") {
+        if (method === "POST" && parts.length === 3 && (parts[2] === "ops" || parts[2] === "suggestions")) {
             const refused = refusal(req)
             if (refused) return fail(res, 403, refused)
             if (!req.headers["content-type"]?.startsWith("application/json")) return fail(res, 415, "expected application/json")
@@ -180,6 +184,12 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
                 body = JSON.parse(await readBody(req))
             } catch (e) {
                 return fail(res, e instanceof UpgoError ? 413 : 400, e instanceof UpgoError ? e.message : "body is not valid JSON")
+            }
+            if (parts[2] === "suggestions") {
+                const asked = dismissSchema.safeParse(body)
+                if (!asked.success) return fail(res, 400, "invalid request", formatIssues(asked.error))
+                const suggestions = await updateSuggestions(entry.path, (list) => removeSuggestions(list, asked.data.dismiss))
+                return send(res, 200, { suggestions })
             }
             const op = opSchema.safeParse(body)
             if (!op.success) return fail(res, 400, "invalid operation", formatIssues(op.error))

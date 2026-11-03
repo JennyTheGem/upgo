@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { register } from "../src/core/registry.ts"
 import { GOALS, MD, readGoals, updateGoals } from "../src/core/store.ts"
+import { readSuggestions, updateSuggestions } from "../src/core/suggestions.ts"
 import { startServer, type RunningServer } from "../server.ts"
 import { fixture, isolateRegistry, makeProject, tempDir } from "./helpers.ts"
 
@@ -95,6 +96,23 @@ describe("reading", () => {
         expect((await req("/api/projects/demo/detail/delta")).status).toBe(403)
         expect((await req("/api/projects/demo/detail/gamma")).status).toBe(404)
         expect((await req("/api/projects/demo/detail/nope")).status).toBe(404)
+    })
+})
+
+describe("suggestions", () => {
+    const dismiss = (ids: unknown, headers: Record<string, string> = {}) =>
+        req("/api/projects/demo/suggestions", { method: "POST", body: JSON.stringify({ dismiss: ids }), headers: { "Content-Type": "application/json", "X-Upgo": "1", ...headers } })
+
+    it("reads them with the project and dismisses them", async () => {
+        expect((await req("/api/projects/demo")).json().suggestions).toEqual([])
+        await updateSuggestions(project, (list) => [...list, { id: "a", title: "A", created: "2026-11-03" }, { id: "b", title: "B", created: "2026-11-03" }])
+        expect((await req("/api/projects/demo")).json().suggestions.map((s: { id: string }) => s.id)).toEqual(["a", "b"])
+        expect((await dismiss(["a"], { "X-Upgo": "" })).status).toBe(403)
+        expect((await dismiss([])).status).toBe(400)
+        expect((await dismiss(["ghost"])).status).toBe(400)
+        const r = await dismiss(["a"])
+        expect([r.status, r.json().suggestions]).toEqual([200, [{ id: "b", title: "B", created: "2026-11-03" }]])
+        expect(readSuggestions(project).map((s) => s.id)).toEqual(["b"])
     })
 })
 

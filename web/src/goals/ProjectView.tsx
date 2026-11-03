@@ -1,7 +1,7 @@
 import "./projectView.css"
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
 import { summarize } from "../../../src/core/summary.ts"
-import type { Item, Section } from "../../../src/core/schema.ts"
+import type { Item, Section, Suggestion } from "../../../src/core/schema.ts"
 import { isOpenStatus } from "../../../src/core/vocab.ts"
 import { api, errorText } from "../api.ts"
 import Button from "../primitives/button/Button.tsx"
@@ -19,8 +19,10 @@ import { copyForAgent } from "./format.ts"
 import ItemModal from "./ItemModal.tsx"
 import { itemMenu, sectionMenu, type ItemActions, type SectionActions } from "./itemMenu.ts"
 import ItemRow, { type RowApi } from "./ItemRow.tsx"
+import ProjectTabs, { type Tab } from "./ProjectTabs.tsx"
 import SectionBlock from "./SectionBlock.tsx"
 import Stage from "./Stage.tsx"
+import SuggestionsPanel from "./SuggestionsPanel.tsx"
 import TrapsPanel from "./TrapsPanel.tsx"
 import { useProject } from "./useProject.ts"
 
@@ -59,11 +61,15 @@ function scrollToItem(item: Item, step = 0) {
 
 // `focus` opens one item once the project loads (a pick on the tour's setlist).
 export default function ProjectView({ id, focus, onChanged }: { id: string; focus?: string | null; onChanged: () => void }) {
-    const { data, error, reload, run } = useProject(id, onChanged)
+    const { data, error, reload, run, dismiss } = useProject(id, onChanged)
     const [filters, setFilters] = useState<Filters>(NO_FILTERS)
     const [expanded, setExpanded] = useState<Set<string>>(() => new Set(focus ? [focus] : []))
     const [picked, setPicked] = useState<Set<string>>(new Set())
     const [editing, setEditing] = useState<Editing | null>(null)
+    const [tab, setTab] = useState<Tab>("goals")
+    // Suggestions being added to goals, one modal at a time.
+    const [adopting, setAdopting] = useState<Suggestion[]>([])
+    const adopted = useRef(false)
     const [over, setOver] = useState<string | null>(null)
     const [dragging, setDragging] = useState<string | null>(null)
     const menu = useDropdownTrigger()
@@ -128,6 +134,7 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
     const jump = (itemId: string) => {
         const item = file.items.find((i) => i.id === itemId)
         if (!item) return
+        setTab("goals")
         if (!visible.includes(item)) setFilters(NO_FILTERS)
         setExpanded((s) => toggled(s, [itemId], true))
         scrollToItem(item)
@@ -271,57 +278,88 @@ export default function ProjectView({ id, focus, onChanged }: { id: string; focu
                 }
             />
 
-            {file.traps.length > 0 && <TrapsPanel traps={file.traps} />}
+            <ProjectTabs tab={tab} suggestions={data.suggestions.length} onChange={setTab} />
 
-            <FilterBar file={file} filters={filters} onChange={setFilters} />
+            <div className="projectTabPanel" id="project-tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
+                {tab === "suggestions" ? (
+                    <SuggestionsPanel suggestions={data.suggestions} canAdopt={file.sections.length > 0} onAdopt={setAdopting} onDismiss={dismiss} />
+                ) : (
+                    <>
+                        {file.traps.length > 0 && <TrapsPanel traps={file.traps} />}
 
-            {groups.map((g) => (
-                <SectionBlock
-                    key={g.section.n}
-                    group={g}
-                    over={over === `section:${g.section.n}`}
-                    pinned={dragging}
-                    api={rowApi}
-                    onMenuAt={(e) => menu.openFromEvent(e, sectionEntries(g.section))}
-                    onMenuFrom={(el) => menu.openFromElement(el, sectionEntries(g.section))}
-                    renderRow={(item, measure, hidden) => (
-                        <ItemRow
-                            key={item.id}
-                            ref={measure}
-                            hidden={hidden}
-                            item={item}
-                            expanded={expanded.has(item.id)}
-                            selected={picked.has(item.id)}
-                            dropBefore={over === item.id}
-                            api={rowApi}
-                        />
-                    )}
-                />
-            ))}
+                        <FilterBar file={file} filters={filters} onChange={setFilters} />
 
-            {!file.sections.length && <EmptyState className="uiContentContainer" message="No sections yet. Add one to start." />}
-            {file.sections.length > 0 && !groups.length && (
-                <EmptyState
-                    className="uiContentContainer"
-                    message="Nothing matches these filters."
-                    action={
-                        <Button variant="secondary" onClick={() => setFilters(NO_FILTERS)}>
-                            Clear filters
-                        </Button>
-                    }
-                />
-            )}
+                        {groups.map((g) => (
+                            <SectionBlock
+                                key={g.section.n}
+                                group={g}
+                                over={over === `section:${g.section.n}`}
+                                pinned={dragging}
+                                api={rowApi}
+                                onMenuAt={(e) => menu.openFromEvent(e, sectionEntries(g.section))}
+                                onMenuFrom={(el) => menu.openFromElement(el, sectionEntries(g.section))}
+                                renderRow={(item, measure, hidden) => (
+                                    <ItemRow
+                                        key={item.id}
+                                        ref={measure}
+                                        hidden={hidden}
+                                        item={item}
+                                        expanded={expanded.has(item.id)}
+                                        selected={picked.has(item.id)}
+                                        dropBefore={over === item.id}
+                                        api={rowApi}
+                                    />
+                                )}
+                            />
+                        ))}
 
-            {pickedItems.length > 0 && (
-                <SelectionBar count={pickedItems.length} onExit={() => setPicked(new Set())}>
-                    <Button variant="primary" imgProps={{ img: "iconify:content-copy" }} onClick={() => copyForAgent(pickedItems)}>
-                        Copy
-                    </Button>
-                </SelectionBar>
-            )}
+                        {!file.sections.length && <EmptyState className="uiContentContainer" message="No sections yet. Add one to start." />}
+                        {file.sections.length > 0 && !groups.length && (
+                            <EmptyState
+                                className="uiContentContainer"
+                                message="Nothing matches these filters."
+                                action={
+                                    <Button variant="secondary" onClick={() => setFilters(NO_FILTERS)}>
+                                        Clear filters
+                                    </Button>
+                                }
+                            />
+                        )}
+
+                        {pickedItems.length > 0 && (
+                            <SelectionBar count={pickedItems.length} onExit={() => setPicked(new Set())}>
+                                <Button variant="primary" imgProps={{ img: "iconify:content-copy" }} onClick={() => copyForAgent(pickedItems)}>
+                                    Copy
+                                </Button>
+                            </SelectionBar>
+                        )}
+                    </>
+                )}
+            </div>
 
             <Dropdown open={menu.open} anchor={menu.anchor} items={menu.items} onClose={menu.close} />
             {editing && <ItemModal file={file} item={editing.item} section={editing.section} onClose={() => setEditing(null)} onSubmit={run} />}
+            {adopting[0] && (
+                <ItemModal
+                    key={adopting[0].id}
+                    file={file}
+                    draft={adopting[0]}
+                    // Saved: on to the next one. Cancelled: stop.
+                    onClose={() => {
+                        const next = adopted.current
+                        adopted.current = false
+                        setAdopting((q) => (next ? q.slice(1) : []))
+                    }}
+                    onSubmit={async (op) => {
+                        const ok = await run(op)
+                        if (ok) {
+                            adopted.current = true
+                            dismiss([adopting[0].id])
+                        }
+                        return ok
+                    }}
+                />
+            )}
         </section>
     )
 }

@@ -62,13 +62,21 @@ describe("init", () => {
         const settings = JSON.parse(readFileSync(join(dir, ".claude", "settings.json"), "utf8"))
         expect(settings.hooks.PreToolUse[0].matcher).toBe("Edit|Write|MultiEdit|NotebookEdit")
         expect(settings.hooks.PreToolUse[0].hooks[0].command).toMatch(/cli\.ts" hook$/)
+        expect(out).toMatch(/\.gitignore: added \/suggestions\.json/)
+        expect(readFileSync(join(dir, ".gitignore"), "utf8")).toBe("/suggestions.json\n")
     })
 
     it("is idempotent", () => {
         const dir = tempDir()
         gitInit(dir)
+        writeFileSync(join(dir, ".gitignore"), "node_modules")
+        // Tracked before init: git skips ignore rules for it unless asked not to.
+        writeFileSync(join(dir, "suggestions.json"), "{}")
+        execFileSync("git", ["add", "suggestions.json"], { cwd: dir })
         ok(cli(["init"], { cwd: dir }))
         const out = ok(cli(["init"], { cwd: dir }))
+        expect(out).not.toMatch(/gitignore/)
+        expect(readFileSync(join(dir, ".gitignore"), "utf8")).toBe("node_modules\n/suggestions.json\n")
         expect(out).toMatch(/git hook: already installed/)
         expect(out).toMatch(/Claude hook: already installed/)
         expect(JSON.parse(readFileSync(join(dir, ".claude", "settings.json"), "utf8")).hooks.PreToolUse).toHaveLength(1)
@@ -104,6 +112,7 @@ describe("init", () => {
         const bare = tempDir()
         expect(ok(cli(["init", "--no-hooks"], { cwd: bare }))).not.toMatch(/hook/)
         expect(existsSync(join(bare, ".claude"))).toBe(false)
+        expect(existsSync(join(bare, ".gitignore"))).toBe(false)
     })
 
     it("uses the existing goals.json id and refuses a different one or a taken id", async () => {
@@ -282,6 +291,23 @@ describe("writing", () => {
         expect(readGoals(cwd).purpose).toBe("New aim")
         ok(cli(["purpose", "--clear"], { cwd }))
         expect(readGoals(cwd).purpose).toBeUndefined()
+    })
+
+    it("manages suggestions in suggestions.json, never goals.json", async () => {
+        const cwd = await registered()
+        const goals = readFileSync(join(cwd, GOALS), "utf8")
+        expect(ok(cli(["suggestion", "list"], { cwd }))).toBe("no suggestions\n")
+        expect(ok(cli(["suggestion", "add", "Dark mode", "--body", "Users asked"], { cwd }))).toBe("suggested dark-mode\n")
+        expect(ok(cli(["suggestion", "add", "Dark mode"], { cwd }))).toBe("suggested dark-mode-2\n")
+        expect(ok(cli(["suggestion", "list"], { cwd }))).toBe("`dark-mode` Dark mode\n`dark-mode-2` Dark mode\n")
+        expect(JSON.parse(readFileSync(join(cwd, "suggestions.json"), "utf8")).suggestions[0]).toMatchObject({ id: "dark-mode", title: "Dark mode", body: "Users asked" })
+        fails(cli(["suggestion", "add", "Bad \u2014 dash"], { cwd }), /em dash/)
+        fails(cli(["suggestion", "add", "x".repeat(201)], { cwd }), /refusing to save an invalid suggestions\.json/)
+        fails(cli(["suggestion", "delete", "ghost"], { cwd }), /no suggestion `ghost`/)
+        expect(ok(cli(["suggestion", "delete", "dark-mode", "dark-mode-2"], { cwd }))).toBe("deleted dark-mode, dark-mode-2\n")
+        expect(ok(cli(["suggestion", "list"], { cwd }))).toBe("no suggestions\n")
+        fails(cli(["suggestion", "nope"], { cwd }), /usage: upgo suggestion/)
+        expect(readFileSync(join(cwd, GOALS), "utf8")).toBe(goals)
     })
 
     it("targets another project with --dir and --project", async () => {

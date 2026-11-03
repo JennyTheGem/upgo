@@ -13,12 +13,12 @@
     height: 0.9rem;
 }
 
-/* Traps */
-.trapsPanel {
+/* Fold panels (traps) */
+.foldPanel {
     padding: var(--padding-xs) var(--padding-md);
 }
 
-.trapsToggle {
+.foldToggle {
     display: flex;
     align-items: center;
     gap: var(--gap-sm);
@@ -28,16 +28,16 @@
     border-radius: var(--radius-sm);
 }
 
-.trapsToggle:focus-visible {
+.foldToggle:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
-.trapsIcon {
+.foldIcon {
     font-size: 1.1rem;
 }
 
-.trapsChevron {
+.foldChevron {
     margin-left: auto;
     width: 20px;
     height: 20px;
@@ -45,11 +45,11 @@
     transition: transform var(--duration-fast) var(--ease-default);
 }
 
-.trapsChevron--open {
+.foldChevron--open {
     transform: rotate(180deg);
 }
 
-.trapsList {
+.foldList {
     list-style: none;
     margin: 0;
     padding: 0 0 var(--padding-sm);
@@ -58,18 +58,48 @@
     gap: var(--gap-md);
 }
 
-.trapItem {
+.foldItem {
     display: flex;
     flex-direction: column;
     gap: var(--gap-2xs);
 }
 
-.trapBody {
+.foldBody {
     margin: 0;
     line-height: 1.5;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     user-select: text;
+}
+
+.projectTabs {
+    display: flex;
+    gap: var(--gap-xs);
+}
+
+.projectTabPanel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+}
+
+/* No drag handle, so the detail lines up under the title with just the checkbox before it. */
+@media not (pointer: coarse) {
+    .itemRow.suggestionRow {
+        --row-lead: calc(16px + var(--gap-sm));
+    }
+}
+
+.suggestionAdopt {
+    flex-shrink: 0;
+    padding: var(--padding-2xs) var(--padding-sm);
+    font-size: var(--text-control);
+}
+
+@media (max-width: 767px) {
+    .suggestionAdoptLabel {
+        display: none;
+    }
 }
 
 /* Filters */
@@ -172,7 +202,7 @@
     }
 }
 
-html[data-reduce-motion] .trapsChevron,
+html[data-reduce-motion] .foldChevron,
 html[data-reduce-motion] .sectionBlock {
     transition: none;
 }

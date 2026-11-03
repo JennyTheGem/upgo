@@ -1,6 +1,6 @@
 import type { GoalsFile } from "./schema.ts"
 
-const EM_DASH = "\u2014"
+export const EM_DASH = "\u2014"
 
 function dupes(values: (string | number)[]): (string | number)[] {
     const seen = new Set<string | number>()

@@ -54,5 +54,19 @@ export function useProject(id: string, onChanged: () => void) {
         [id, onChanged, reload],
     )
 
-    return { data, error, reload, run }
+    const dismiss = useCallback(
+        async (ids: string[]): Promise<boolean> => {
+            try {
+                const suggestions = await api.dismiss(id, ids)
+                setData((d) => d && { ...d, suggestions })
+                return true
+            } catch (e) {
+                toast.error(errorText(e))
+                return false
+            }
+        },
+        [id],
+    )
+
+    return { data, error, reload, run, dismiss }
 }

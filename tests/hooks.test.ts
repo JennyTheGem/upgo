@@ -16,6 +16,7 @@ describe("Claude PreToolUse hook", () => {
             ["Write", "goals.md"],
             ["MultiEdit", "goals.json"],
             ["Edit", "GOALS.MD"],
+            ["Write", "suggestions.json"],
         ]) {
             const r = cli(["hook"], { cwd: tempDir(), input: hookInput(tool, { file_path: join(dir, file) }) })
             expect(r.code, `${tool} ${file}`).toBe(2)

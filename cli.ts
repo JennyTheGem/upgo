@@ -9,6 +9,7 @@ import * as m from "./src/core/mutate.ts"
 import { checkRegistrable, findEntry, forget, readRegistry, register, UPGO_DIR } from "./src/core/registry.ts"
 import { isOpen, PHASE_LABEL, PHASES, POINTER_KEYS, SCHEMA_URL, SIZES, STATUSES, type GoalsFile, type Item, type Pointers } from "./src/core/schema.ts"
 import { findProjectDir, GOALS, MD, readGoals, saveGoals, serialize, updateGoals, writeAtomic } from "./src/core/store.ts"
+import { addSuggestion, readSuggestions, removeSuggestions, SUGGESTIONS, updateSuggestions } from "./src/core/suggestions.ts"
 import { slugify, today, UpgoError } from "./src/core/util.ts"
 
 const CLI = `${UPGO_DIR.replace(/\\/g, "/")}/cli.ts`
@@ -34,6 +35,7 @@ Writing (each command validates and regenerates goals.md)
   upgo section list | add "<title>" [--n N] | rename N "<title>" | move N [--before M] | delete N
   upgo trap list | add "<title>" [--body text] [--id slug] | edit <id> [--title t] [--body text] | delete <id>
   upgo purpose ["<text>" | --clear]
+  upgo suggestion list | add "<title>" [--body text] | delete <id...>   ideas for the user, only when asked
 
 Setup and checks
   upgo init [--id slug] [--purpose text] [--no-hooks]   register this folder, install git + Claude hooks
@@ -202,6 +204,22 @@ async function installGitHook(dir: string): Promise<string> {
     return `git hook: installed (${path})`
 }
 
+// Suggestions are scratch for the user, not project history.
+async function ignoreSuggestions(dir: string): Promise<string | null> {
+    try {
+        // --no-index: a tracked file still counts as ignored once the pattern is in, so a re-init adds no duplicate.
+        execFileSync("git", ["check-ignore", "-q", "--no-index", SUGGESTIONS], { cwd: dir, stdio: "ignore" })
+        return null
+    } catch (e) {
+        // 1: not ignored yet. Anything else: not a git repo.
+        if ((e as { status?: number }).status !== 1) return null
+    }
+    const path = join(dir, ".gitignore")
+    const existing = existsSync(path) ? readFileSync(path, "utf8") : ""
+    await fsp.writeFile(path, `${existing}${existing && !existing.endsWith("\n") ? "\n" : ""}/${SUGGESTIONS}\n`)
+    return `.gitignore: added /${SUGGESTIONS}`
+}
+
 async function installClaudeHook(dir: string): Promise<string> {
     const path = join(dir, ".claude", "settings.json")
     let settings: Record<string, unknown> = {}
@@ -235,8 +253,8 @@ async function hook(io: Io): Promise<number> {
     const name = basename(path).toLowerCase()
     const goals = join(dirname(path), GOALS)
     // Managed means upgo wrote that goals.json; another tool's file of the same name is not ours to guard.
-    if ((name === GOALS || name === MD) && existsSync(goals) && readFileSync(goals, "utf8").includes(SCHEMA_URL)) {
-        io.err(`${name} is managed by upgo and must not be edited directly. Use the CLI: \`upgo add|edit|done|drop|move ...\` (\`upgo help\`).\n`)
+    if ((name === GOALS || name === MD || name === SUGGESTIONS) && existsSync(goals) && readFileSync(goals, "utf8").includes(SCHEMA_URL)) {
+        io.err(`${name} is managed by upgo and must not be edited directly. Use the CLI: \`upgo add|edit|done|drop|move|suggestion ...\` (\`upgo help\`).\n`)
         return 2
     }
     return 0
@@ -273,6 +291,8 @@ async function run(argv: string[], io: Io): Promise<number> {
             await register(file.project, dir)
             const lines = [`registered \`${file.project}\` at ${dir}`]
             if (!values["no-hooks"]) lines.push(await installGitHook(dir), await installClaudeHook(dir))
+            const ignored = await ignoreSuggestions(dir)
+            if (ignored) lines.push(ignored)
             io.out(lines.join("\n") + "\n")
             return 0
         }
@@ -458,6 +478,31 @@ async function run(argv: string[], io: Io): Promise<number> {
                 await updateGoals(dir, (file) => m.deleteTrap(file, id))
                 io.out(`deleted trap ${id}\n`)
             } else throw new UpgoError("usage: upgo trap list | add | edit | delete")
+            return 0
+        }
+
+        case "suggestion": {
+            const [sub, ...args] = rest
+            const { values, positionals } = parse(args, { ...TARGET, body: { type: "string" } })
+            const dir = projectDir(values)
+            if (sub === "list") {
+                const list = readSuggestions(dir)
+                if (!list.length) io.out("no suggestions\n")
+                for (const s of list) io.out(`\`${s.id}\` ${s.title}\n`)
+            } else if (sub === "add") {
+                const title = need(positionals[0], "suggestion title")
+                let id = ""
+                await updateSuggestions(dir, (list) => {
+                    const r = addSuggestion(list, { title, body: values.body }, day)
+                    id = r.id
+                    return r.list
+                })
+                io.out(`suggested ${id}\n`)
+            } else if (sub === "delete") {
+                need(positionals[0], "suggestion id")
+                await updateSuggestions(dir, (list) => removeSuggestions(list, positionals))
+                io.out(`deleted ${positionals.join(", ")}\n`)
+            } else throw new UpgoError("usage: upgo suggestion list | add | delete")
             return 0
         }
 

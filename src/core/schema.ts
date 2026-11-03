@@ -48,6 +48,19 @@ export const trapSchema = z.strictObject({
     body: z.string().optional(),
 })
 
+// Ideas an agent left for the user, kept in suggestions.json beside goals.json.
+export const suggestionSchema = z.strictObject({
+    id: slug,
+    title: line(200),
+    body: z.string().optional(),
+    created: date,
+})
+
+export const suggestionsFileSchema = z.strictObject({
+    version: z.literal(1),
+    suggestions: z.array(suggestionSchema),
+})
+
 export const goalsFileSchema = z.strictObject({
     $schema: z.string().optional(),
     version: z.literal(1),
@@ -63,6 +76,7 @@ export type Item = z.infer<typeof itemSchema>
 export type Section = z.infer<typeof sectionSchema>
 export type Trap = z.infer<typeof trapSchema>
 export type GoalsFile = z.infer<typeof goalsFileSchema>
+export type Suggestion = z.infer<typeof suggestionSchema>
 
 export const isOpen = (item: Item) => isOpenStatus(item.status)
 

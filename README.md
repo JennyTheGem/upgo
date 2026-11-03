@@ -21,7 +21,8 @@ Structured goals for every project. Each project keeps a `goals.json` that agent
 - **Reorder**: drag a row by its handle, also into another section; dropping on a section header puts it at the end. Keyboard: Alt+Up / Alt+Down.
 - **Sections**: **Add section** in the header; a section's ⋮ menu renames, moves, adds an item to it or deletes it (only when it holds no items at all). A section with no open items shows as closed.
 - **Copy for an agent**: tick items (shift-click for a range), press **Copy** in the bar at the bottom, paste into Claude. It gets `id: title` plus the body and reads the rest itself with `upgo show <id>`.
-- **Live**: when an agent changes a `goals.json`, the page updates by itself.
+- **Suggestions**: ask an agent for ideas and it adds them with `upgo suggestion add`. They show in the project's **Suggestions** tab (next to **Goals**), as rows like goal rows: click to expand, **Add to goals** on each row (opens a filled-in Add item form, saved ones disappear), ⋮ or right-click for copy and dismiss. Tick several for **Copy** (for an agent, they stay), **Add to goals** (one form after another) or **Dismiss** in the bottom bar.
+- **Live**: when an agent changes a `goals.json` or `suggestions.json`, the page updates by itself.
 
 ## Working with agents
 
@@ -53,6 +54,7 @@ upgo reopen <id>                               upgo delete <id>   (mistakes and 
 upgo move <id> --section 3 | --before <id> | --after <id> | --up | --down
 upgo section list | add "Title" | rename 3 "Title" | move 3 --before 1 | delete 3
 upgo trap list | add "Title" --body "..." | edit <id> | delete <id>
+upgo suggestion list | add "Title" --body "..." | delete <id...>
 upgo check [--all]                             validate one or every project
 upgo render                                    rewrite goals.md from goals.json
 upgo ui [--port 4141] [--no-open]
@@ -64,8 +66,9 @@ Every command works from inside the project folder, or anywhere with `--dir <pat
 
 - **`goals.json`** (committed with the repo): the source of truth. Sections (`n` is the § number, array order is display order), traps, and items. An item has an `id` (slug, unique per project), `section`, `title`, optional `body`, `phase` (`now`, `next`, `later`, `wayLater`, `maybe`), `status` (`planned`, `partial`, `done`, `dropped`), `size` (`S`/`M`/`L`), `scope`, `pointers` (`files`, `seam`, `depends`, `trap`, `how`, `check`, `options`, `where`), `detail` (a `.md` file in the repo), `related` (`project:id` refs, also across projects), dates, and `note` (done note or drop reason). Done and dropped items stay in the file: that is the archive.
 - **`goals.md`** (committed, generated): what CLAUDE.md auto-loads with `@goals.md`. Traps, then the open now/next/later items one line each; way later and maybe show as counts; done and dropped never appear.
+- **`suggestions.json`** (gitignored by `upgo init` in a git repo): ideas an agent left for the user, managed with `upgo suggestion`, never in `goals.md`.
 - **`docs/goalsDetails/*.md`**: long-form detail for an open item, linked through `detail`.
-- **Hooks** installed by `upgo init`: a git pre-commit that runs `upgo check` (a broken `goals.json` or a stale `goals.md` blocks the commit), and a PreToolUse hook in the repo's `.claude/settings.json` that stops agents from editing the two files by hand.
+- **Hooks** installed by `upgo init`: a git pre-commit that runs `upgo check` (a broken `goals.json` or a stale `goals.md` blocks the commit), and a PreToolUse hook in the repo's `.claude/settings.json` that stops agents from editing `goals.json`, `goals.md` and `suggestions.json` by hand.
 
 Outside the projects, in this folder: `registry.json` (which projects exist; `UPGO_REGISTRY` overrides the path, tests use it) and the dashboard.
 

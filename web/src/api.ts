@@ -1,4 +1,4 @@
-import type { GoalsFile, Item } from "../../src/core/schema.ts"
+import type { GoalsFile, Item, Suggestion } from "../../src/core/schema.ts"
 import type { Op } from "../../src/core/ops.ts"
 
 // Every request the dashboard makes, so tests can stub `fetch` and `EventSource` in one place.
@@ -21,7 +21,7 @@ export type ProjectSummary = {
     recent: DoneItem[]
     error?: string
 }
-export type ProjectData = { id: string; path: string; file: GoalsFile }
+export type ProjectData = { id: string; path: string; file: GoalsFile; suggestions: Suggestion[] }
 export type ServerEvent = { type: "project"; id: string } | { type: "projects" }
 
 export class ApiError extends Error {
@@ -57,6 +57,12 @@ export const api = {
             headers: { "Content-Type": "application/json", "X-Upgo": "1" },
             body: JSON.stringify(op),
         }).then((r) => r.file),
+    dismiss: (id: string, ids: string[]) =>
+        request<{ suggestions: Suggestion[] }>(`${at(id)}/suggestions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Upgo": "1" },
+            body: JSON.stringify({ dismiss: ids }),
+        }).then((r) => r.suggestions),
     // Unregisters only: the folder and its goals.json stay.
     forget: (id: string) => request<{ id: string }>(at(id), { method: "DELETE", headers: { "X-Upgo": "1" } }),
 }
