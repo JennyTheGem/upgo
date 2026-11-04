@@ -1,6 +1,7 @@
 import { useState } from "react"
 import type { Trap } from "../../../src/core/schema.ts"
 import Icon from "../primitives/icon/Icon.tsx"
+import Markdown from "./Markdown.tsx"
 
 // Read-only: traps are edited through the CLI.
 export default function TrapsPanel({ traps }: { traps: Trap[] }) {
@@ -18,7 +19,7 @@ export default function TrapsPanel({ traps }: { traps: Trap[] }) {
                     {traps.map((t) => (
                         <li key={t.id} className="foldItem">
                             <span className="font-bold">{t.title}</span>
-                            {t.body && <p className="foldBody caption op-80">{t.body}</p>}
+                            {t.body && <Markdown className="foldBody caption op-80" text={t.body} />}
                         </li>
                     ))}
                 </ul>

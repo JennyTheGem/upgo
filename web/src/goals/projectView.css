@@ -67,9 +67,6 @@
 .foldBody {
     margin: 0;
     line-height: 1.5;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    user-select: text;
 }
 
 .projectTabs {

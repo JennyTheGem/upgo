@@ -5,6 +5,7 @@ import { api, errorText } from "../api.ts"
 import Button from "../primitives/button/Button.tsx"
 import Chip from "../primitives/chip/Chip.tsx"
 import { toast } from "../primitives/toast/toast.ts"
+import Markdown from "./Markdown.tsx"
 
 export default function ItemDetail({ item, projectId, onOpen }: { item: Item; projectId: string; onOpen: (ref: string) => void }) {
     const [file, setFile] = useState<{ path: string; text: string } | null>(null)
@@ -25,7 +26,7 @@ export default function ItemDetail({ item, projectId, onOpen }: { item: Item; pr
 
     return (
         <div className="itemDetail">
-            {item.body ? <p className="itemBody">{item.body}</p> : <span className="caption op-50">No body.</span>}
+            {item.body ? <Markdown className="itemBody" text={item.body} /> : <span className="caption op-50">No body.</span>}
             {pointers.length > 0 && (
                 <dl className="itemPointers">
                     {pointers.map((k) => (
@@ -69,9 +70,7 @@ export default function ItemDetail({ item, projectId, onOpen }: { item: Item; pr
                 </div>
             )}
             {file && (
-                <pre className="detailText Inconsolata caption" tabIndex={0} role="region" aria-label={`Detail file ${file.path}`}>
-                    {file.text}
-                </pre>
+                <Markdown className="detailText" text={file.text} tabIndex={0} role="region" aria-label={`Detail file ${file.path}`} />
             )}
         </div>
     )

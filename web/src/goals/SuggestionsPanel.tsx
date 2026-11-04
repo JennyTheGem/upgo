@@ -7,6 +7,7 @@ import EmptyState from "../primitives/emptyState/EmptyState.tsx"
 import ErrorState from "../primitives/errorState/ErrorState.tsx"
 import SelectionBar from "../primitives/selectionBar/SelectionBar.tsx"
 import { copyForAgent } from "./format.ts"
+import Markdown from "./Markdown.tsx"
 
 type Props = {
     suggestions: Suggestion[]
@@ -98,7 +99,7 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
                                 </div>
                                 {open && (
                                     <div className="itemDetail">
-                                        {s.body ? <p className="itemBody">{s.body}</p> : <span className="caption op-50">No details.</span>}
+                                        {s.body ? <Markdown className="itemBody" text={s.body} /> : <span className="caption op-50">No details.</span>}
                                         <span className="itemMeta caption-small op-50">suggested {s.created}</span>
                                     </div>
                                 )}

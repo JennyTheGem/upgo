@@ -358,9 +358,10 @@
       "title": "Render markdown in the dashboard",
       "body": "Bodies and detail files are markdown but show as plain text and a raw pre block, so backticks, lists and links read badly. A small sanitized markdown renderer (no raw HTML) for body and detail. Size M.",
       "phase": "maybe",
-      "status": "planned",
+      "status": "done",
       "created": "2026-11-03",
-      "updated": "2026-11-03"
+      "updated": "2026-11-04",
+      "note": "web/src/goals/Markdown.tsx: React-element renderer (headings, lists incl nested, code, fences, quotes, hr, bold/em, http/mailto links only). Used for item body, detail file, suggestions, traps. Test: tests/web/markdown.test.tsx"
     },
     {
       "id": "undo-toast-for-dashboard-actions",
