@@ -80,7 +80,9 @@ export type Suggestion = z.infer<typeof suggestionSchema>
 
 export const isOpen = (item: Item) => isOpenStatus(item.status)
 
-export const SCHEMA_URL = "file:///<upgo folder>/goals.schema.json"
+export const SCHEMA_URL = "https://raw.githubusercontent.com/JennyTheGem/upgo/main/goals.schema.json"
+// Also matches files written before the URL moved to GitHub.
+export const isManaged = (goalsJson: string) => /"\$schema"\s*:\s*"[^"]*\/upgo\/(?:main\/)?goals\.schema\.json"/.test(goalsJson)
 
 export function jsonSchema() {
     return z.toJSONSchema(goalsFileSchema, { target: "draft-2020-12" })

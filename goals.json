@@ -1,5 +1,5 @@
 {
-  "$schema": "file:///<upgo folder>/goals.schema.json",
+  "$schema": "https://raw.githubusercontent.com/JennyTheGem/upgo/main/goals.schema.json",
   "version": 1,
   "project": "upgo",
   "purpose": "Structured goals for every project: a validating CLI for agents, a slim generated goals.md, and a local dashboard.",
@@ -158,12 +158,12 @@
       "id": "migrate-rest",
       "section": 3,
       "title": "Migrate remaining repos to upgo",
-      "body": "PLAN.md lists BeyondUI, chat and Uplift with hand-written goals.md dialects. Run 'migrate goals' in each.",
+      "body": "BeyondUI, chat and Uplift had hand-written goals.md dialects. Run 'migrate goals' in each.",
       "phase": "next",
       "status": "done",
       "size": "S",
       "created": "2026-10-20",
-      "updated": "2026-10-20"
+      "updated": "2026-11-04"
     },
     {
       "id": "skill",
@@ -223,6 +223,18 @@
       "created": "2026-10-20",
       "updated": "2026-10-20",
       "note": "velora-frontend-react, velora-backend, upex and portfolio-2026 registered in the registry."
+    },
+    {
+      "id": "publish-the-repo",
+      "section": 3,
+      "title": "Publish the repo",
+      "body": "Untrack private files, sample import fixture, portable schema url and hook paths, MIT license, noreply email in history.",
+      "phase": "now",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-04",
+      "updated": "2026-11-04",
+      "note": "Private files untracked and purged from history, sample import fixture, GitHub schema url, MIT license, noreply email on every commit"
     },
     {
       "id": "core-store",

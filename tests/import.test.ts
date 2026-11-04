@@ -8,6 +8,8 @@ import { parseGoals } from "../src/core/store.ts"
 const TODAY = "2026-10-12"
 const EM = String.fromCharCode(0x2014)
 const FIXTURES = fileURLToPath(new URL("./fixtures/", import.meta.url))
+// Real roadmaps stay local (gitignored); their tests skip when the folder is missing.
+const PRIVATE = fileURLToPath(new URL("./fixtures-private/", import.meta.url))
 
 const run = (md: string, completedMd?: string) => importMarkdown(md, { project: "demo", today: TODAY, completedMd })
 const md = (...lines: string[]) => lines.join("\n")
@@ -331,9 +333,22 @@ describe("importMarkdown: items", () => {
     })
 })
 
-// Real roadmaps copied unchanged from the repos they came from.
-const REAL = ["velora", "velora-cross", "upex", "beyondui", "uplift", "portfolio", "chat"]
-const read = (path: string) => (existsSync(FIXTURES + path) ? readFileSync(FIXTURES + path, "utf8") : undefined)
+const PRIVATE_COUNTS: Record<string, [number, number]> = {
+    velora: [15, 29],
+    "velora-cross": [0, 4],
+    upex: [0, 6],
+    beyondui: [0, 8],
+    uplift: [0, 10],
+    portfolio: [0, 11],
+    chat: [0, 4],
+}
+const COUNTS: Record<string, [number, number]> = { sample: [2, 5], ...(existsSync(PRIVATE) ? PRIVATE_COUNTS : {}) }
+const REAL = Object.keys(COUNTS)
+const dirOf = (name: string) => (name in PRIVATE_COUNTS ? PRIVATE : FIXTURES)
+const read = (path: string) => {
+    const full = dirOf(path.split("/")[0]) + path
+    return existsSync(full) ? readFileSync(full, "utf8") : undefined
+}
 const lines = (text = "") => text.replace(/\r/g, "").split("\n")
 
 // First lines of the top-level bullets (bar `- ↳` pointers) and paragraphs inside sections, placeholders aside.
@@ -385,18 +400,20 @@ describe("importMarkdown: real roadmaps", () => {
 
     it("keeps the expected trap and section counts", () => {
         const counts = Object.fromEntries(REAL.map((n) => [n, [imported.get(n)!.report.traps, imported.get(n)!.report.sections]]))
-        expect(counts).toEqual({ velora: [15, 29], "velora-cross": [0, 4], upex: [0, 6], beyondui: [0, 8], uplift: [0, 10], portfolio: [0, 11], chat: [0, 4] })
+        expect(counts).toEqual(COUNTS)
     })
 
-    it("lands every Velora pointer sub-bullet in some item's pointers", () => {
-        const { goals, file } = imported.get("velora")!
+    // Minimum pointer sub-bullets, so the check cannot pass on an empty match.
+    const POINTERS: Record<string, number> = { sample: 5, velora: 51 }
+    it.each(REAL.filter((n) => n in POINTERS))("%s lands every pointer sub-bullet in some item's pointers", (name) => {
+        const { goals, file } = imported.get(name)!
         const have = new Set(file.items.flatMap((i) => Object.entries(i.pointers ?? {}).flatMap(([k, vs]) => vs.map((v) => `${k}:${v}`))))
         const want = [...goals.replace(/\r/g, "").matchAll(/^[ \t]+- ↳ (files|seam|depends|trap|how|check|options|where):\s*(.+)$/gm)]
-        expect(want.length).toBeGreaterThan(50)
+        expect(want.length).toBeGreaterThanOrEqual(POINTERS[name])
         for (const [, key, value] of want) expect(have).toContain(`${key}:${value.trim()}`)
     })
 
-    it("converts known Velora items exactly", () => {
+    it.skipIf(!imported.has("velora"))("converts known Velora items exactly", () => {
         const { file } = imported.get("velora")!
         const byId = (id: string) => file.items.find((i) => i.id === id)
         expect(byId("random-logouts")).toMatchObject({ section: 10, title: "Random logouts", phase: "next", status: "planned", created: TODAY })

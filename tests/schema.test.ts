@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { UPGO_DIR } from "../src/core/registry.ts"
-import { goalsFileSchema, itemSchema, jsonSchema, POINTER_KEYS } from "../src/core/schema.ts"
+import { goalsFileSchema, isManaged, itemSchema, jsonSchema, POINTER_KEYS, SCHEMA_URL } from "../src/core/schema.ts"
 import { parseGoals } from "../src/core/store.ts"
 import { slugify, uniqueSlug } from "../src/core/util.ts"
 import { D, fixture } from "./helpers.ts"
@@ -10,6 +10,14 @@ const base = fixture().items[0]
 const valid = (patch: Record<string, unknown>) => itemSchema.safeParse({ ...base, ...patch }).success
 
 describe("schema", () => {
+    it("knows upgo files by the current and the old local schema url", () => {
+        expect(isManaged(JSON.stringify({ $schema: SCHEMA_URL }))).toBe(true)
+        expect(isManaged(`{
+  "$schema": "file:///C:/tools/upgo/goals.schema.json"`)).toBe(true)
+        expect(isManaged(`{ "$schema" :\r\n "${SCHEMA_URL}" }`)).toBe(true)
+        expect(isManaged('{ "$schema": "https://example.com/other/goals.schema.json" }')).toBe(false)
+    })
+
     it("accepts the fixture", () => {
         expect(goalsFileSchema.safeParse(fixture()).success).toBe(true)
     })

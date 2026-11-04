@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url"
 import { checkProject } from "./src/core/check.ts"
 import * as m from "./src/core/mutate.ts"
 import { checkRegistrable, findEntry, forget, readRegistry, register, UPGO_DIR } from "./src/core/registry.ts"
-import { isOpen, PHASE_LABEL, PHASES, POINTER_KEYS, SCHEMA_URL, SIZES, STATUSES, type GoalsFile, type Item, type Pointers } from "./src/core/schema.ts"
+import { isManaged, isOpen, PHASE_LABEL, PHASES, POINTER_KEYS, SIZES, STATUSES, type GoalsFile, type Item, type Pointers } from "./src/core/schema.ts"
 import { findProjectDir, GOALS, MD, readGoals, saveGoals, serialize, updateGoals, writeAtomic } from "./src/core/store.ts"
 import { addSuggestion, readSuggestions, removeSuggestions, SUGGESTIONS, updateSuggestions } from "./src/core/suggestions.ts"
 import { slugify, today, UpgoError } from "./src/core/util.ts"
@@ -254,7 +254,7 @@ async function hook(io: Io): Promise<number> {
     const name = basename(path).toLowerCase()
     const goals = join(dirname(path), GOALS)
     // Managed means upgo wrote that goals.json; another tool's file of the same name is not ours to guard.
-    if ((name === GOALS || name === MD || name === SUGGESTIONS) && existsSync(goals) && readFileSync(goals, "utf8").includes(SCHEMA_URL)) {
+    if ((name === GOALS || name === MD || name === SUGGESTIONS) && existsSync(goals) && isManaged(readFileSync(goals, "utf8"))) {
         io.err(`${name} is managed by upgo and must not be edited directly. Use the CLI: \`upgo add|edit|done|drop|move|suggestion ...\` (\`upgo help\`).\n`)
         return 2
     }

@@ -3,3 +3,9 @@ web/dist/
 registry.json
 *.tmp-*
 *.lock
+/.impeccable
+/.idea
+/suggestions.json
+tests/fixtures-private/
+.claude/settings.json
+/PLAN.md
