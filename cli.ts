@@ -1,18 +1,19 @@
+#!/usr/bin/env node
 import { parseArgs, type ParseArgsConfig } from "node:util"
 import { execFileSync } from "node:child_process"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readFileSync, realpathSync } from "node:fs"
 import fsp from "node:fs/promises"
 import { basename, dirname, join, relative, resolve } from "node:path"
-import { pathToFileURL } from "node:url"
+import { fileURLToPath, pathToFileURL } from "node:url"
 import { checkProject } from "./src/core/check.ts"
 import * as m from "./src/core/mutate.ts"
-import { checkRegistrable, findEntry, forget, readRegistry, register, UPGO_DIR } from "./src/core/registry.ts"
+import { checkRegistrable, findEntry, forget, readRegistry, register } from "./src/core/registry.ts"
 import { isManaged, isOpen, PHASE_LABEL, PHASES, POINTER_KEYS, SIZES, STATUSES, type GoalsFile, type Item, type Pointers } from "./src/core/schema.ts"
 import { findProjectDir, GOALS, MD, readGoals, saveGoals, serialize, updateGoals, writeAtomic } from "./src/core/store.ts"
 import { addSuggestion, readSuggestions, removeSuggestions, SUGGESTIONS, updateSuggestions } from "./src/core/suggestions.ts"
 import { slugify, today, UpgoError } from "./src/core/util.ts"
 
-const CLI = `${UPGO_DIR.replace(/\\/g, "/")}/cli.ts`
+const CLI = fileURLToPath(import.meta.url).replace(/\\/g, "/")
 const HOOK_MARK = "upgo"
 // A shebang naming a POSIX-ish shell, directly or through env.
 const SHELL = /^#!\s*(?:\S*\/)?(?:env\s+(?:-\S+\s+)*)?(?:\S*\/)?(?:sh|bash|dash|zsh|ksh)(?:\s|$)/
@@ -193,8 +194,11 @@ async function installGitHook(dir: string): Promise<string> {
     const existing = existsSync(path) ? readFileSync(path, "utf8") : null
     // Per project dir, so a second project in the same repo gets its own check.
     if (existing?.includes(line)) return `git hook: already installed (${path})`
+    // Same check through an older CLI path (upgo moved or reinstalled): repoint it.
+    const stale = existing?.split("\n").find((l) => l.startsWith('node "') && l.endsWith(`" check --dir "${rel}" || exit 1`))
     let next: string
-    if (existing === null) next = `#!/bin/sh\n${block}`
+    if (stale) next = existing!.replace(stale, () => line)
+    else if (existing === null) next = `#!/bin/sh\n${block}`
     else if (existing.startsWith("#!")) {
         const nl = existing.indexOf("\n")
         if (!SHELL.test(nl < 0 ? existing : existing.slice(0, nl))) return `git hook: skipped (${path} is not a shell script; make it run \`${line}\`)`
@@ -202,7 +206,7 @@ async function installGitHook(dir: string): Promise<string> {
     } else next = `#!/bin/sh\n${block}${existing}`
     await fsp.mkdir(hooksDir, { recursive: true })
     await fsp.writeFile(path, next, { mode: 0o755 })
-    return `git hook: installed (${path})`
+    return `git hook: ${stale ? "updated" : "installed"} (${path})`
 }
 
 // Suggestions are scratch for the user, not project history.
@@ -233,11 +237,16 @@ async function installClaudeHook(dir: string): Promise<string> {
     }
     const hooks = (settings.hooks ??= {}) as Record<string, unknown[]>
     const pre = (hooks.PreToolUse ??= []) as { matcher?: string; hooks?: { type?: string; command?: string }[] }[]
-    if (pre.some((e) => e.hooks?.some((h) => h.command?.includes(`${CLI}" hook`)))) return `Claude hook: already installed (${path})`
-    pre.push({ matcher: "Edit|Write|MultiEdit|NotebookEdit", hooks: [{ type: "command", command: `node "${CLI}" hook` }] })
+    const all = pre.flatMap((e) => e.hooks ?? [])
+    if (all.some((h) => h.command?.includes(`${CLI}" hook`))) return `Claude hook: already installed (${path})`
+    const command = `node "${CLI}" hook`
+    // Older CLI path (upgo moved or reinstalled): repoint it.
+    const stale = all.find((h) => /^node "[^"]*\/cli\.[jt]s" hook$/.test(h.command ?? ""))
+    if (stale) stale.command = command
+    else pre.push({ matcher: "Edit|Write|MultiEdit|NotebookEdit", hooks: [{ type: "command", command }] })
     await fsp.mkdir(dirname(path), { recursive: true })
     await writeAtomic(path, JSON.stringify(settings, null, 2) + "\n")
-    return `Claude hook: installed (${path})`
+    return `Claude hook: ${stale ? "updated" : "installed"} (${path})`
 }
 
 // PreToolUse hook: blocks an agent's direct Edit/Write of an upgo-managed goals.json or goals.md.
@@ -630,7 +639,7 @@ async function readStdin(): Promise<string> {
     return Buffer.concat(chunks).toString("utf8")
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
     const code = await main(process.argv.slice(2), {
         out: (s) => process.stdout.write(s),
         err: (s) => process.stderr.write(s),

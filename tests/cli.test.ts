@@ -83,6 +83,24 @@ describe("init", () => {
         expect(readRegistry()).toHaveLength(1)
     })
 
+    it("repoints hooks left by upgo at another path", () => {
+        const dir = tempDir()
+        gitInit(dir)
+        mkdirSync(join(dir, ".claude"))
+        writeFileSync(join(dir, ".claude", "settings.json"), JSON.stringify({ hooks: { PreToolUse: [{ matcher: "Edit", hooks: [{ type: "command", command: 'node "/old/upgo/cli.ts" hook' }] }] } }))
+        writeFileSync(join(dir, ".git", "hooks", "pre-commit"), '#!/bin/sh\n# upgo: x\nnode "/old/upgo/cli.ts" check --dir "." || exit 1\n')
+        const out = ok(cli(["init"], { cwd: dir }))
+        expect(out).toMatch(/git hook: updated/)
+        expect(out).toMatch(/Claude hook: updated/)
+        const hook = readFileSync(join(dir, ".git", "hooks", "pre-commit"), "utf8")
+        expect(hook).not.toContain("/old/")
+        expect(hook.match(/check --dir "\."/g)).toHaveLength(1)
+        const pre = JSON.parse(readFileSync(join(dir, ".claude", "settings.json"), "utf8")).hooks.PreToolUse
+        expect(pre).toHaveLength(1)
+        expect(pre[0].hooks[0].command).toMatch(/^node "[^"]*cli\.ts" hook$/)
+        expect(pre[0].hooks[0].command).not.toContain("/old/")
+    })
+
     it("keeps existing settings and an existing pre-commit hook", () => {
         const dir = tempDir()
         gitInit(dir)

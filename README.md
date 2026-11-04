@@ -2,7 +2,15 @@
 
 Structured goals for every project. Each project keeps a `goals.json` that agents only touch through the validating `upgo` CLI, a slim generated `goals.md` for agent context, and a local dashboard over every registered project.
 
-## Setup (once per machine)
+## Install
+
+```
+npm i -g @uplift-beyond/upgo
+```
+
+Then `upgo help`. The agent skill ships in the package: copy `$(npm root -g)/@uplift-beyond/upgo/skill/SKILL.md` to `~/.claude/skills/upgo/SKILL.md`.
+
+## Setup from source
 
 - Node 22.18+ (it runs the `.ts` files directly). `npm install` in this folder.
 - Put this folder on your PATH: `upgo.cmd` serves cmd/PowerShell, `upgo` serves Git Bash and other shells. Without PATH: `node <upgo folder>/cli.ts`.
@@ -70,7 +78,7 @@ Every command works from inside the project folder, or anywhere with `--dir <pat
 - **`docs/goalsDetails/*.md`**: long-form detail for an open item, linked through `detail`.
 - **Hooks** installed by `upgo init`: a git pre-commit that runs `upgo check` (a broken `goals.json` or `suggestions.json`, or a stale `goals.md`, blocks the commit), and a PreToolUse hook in the repo's `.claude/settings.json` that stops agents from editing `goals.json`, `goals.md` and `suggestions.json` by hand.
 
-Outside the projects, in this folder: `registry.json` (which projects exist; `UPGO_REGISTRY` overrides the path, tests use it) and the dashboard.
+Outside the projects: `~/.upgo/registry.json` (which projects exist; `UPGO_REGISTRY` overrides the path, tests use it). An older `registry.json` in the upgo folder is copied there once.
 
 ## When something goes wrong
 
@@ -78,7 +86,7 @@ Outside the projects, in this folder: `registry.json` (which projects exist; `UP
 - **"goals.json was saved, but goals.md could not be written"**: the change is in; run `upgo render`. Do not repeat the command.
 - **A write waits or says the file is locked**: another write holds `goals.json.lock`. A lock older than 10s is taken over automatically.
 - **Dashboard says it is not built**: `npm run build` here.
-- **This folder moved**: the installed hooks point at the old path and fail. Run `upgo init` again in each project.
+- **This folder moved, or upgo was reinstalled somewhere else**: the installed hooks point at the old path and fail. Run `upgo init` again in each project.
 - **Remove a project from the dashboard**: its Remove button, or `upgo forget <id>`. Its files stay where they are.
 
 ## Pieces

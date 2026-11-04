@@ -5,7 +5,7 @@ description: Use whenever a project's goals or roadmap come up in a folder manag
 
 # upgo
 
-Goals live in `goals.json`, managed by the `upgo` CLI. `goals.md` is generated from it and is what CLAUDE.md auto-loads: open items only, one line each. Run `upgo help` for every command. If `upgo` is not on PATH, use `node <upgo folder>/cli.ts`.
+Goals live in `goals.json`, managed by the `upgo` CLI. `goals.md` is generated from it and is what CLAUDE.md auto-loads: open items only, one line each. Run `upgo help` for every command. If `upgo` is not on PATH, ask the user to install it (`npm i -g @uplift-beyond/upgo`); in a source checkout, `node <upgo folder>/cli.ts` works too.
 
 ## Rules
 
