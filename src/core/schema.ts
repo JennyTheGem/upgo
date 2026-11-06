@@ -56,6 +56,7 @@ export const suggestionSchema = z.strictObject({
     // Hints for when it becomes a goal; the section may be gone by then.
     section: z.number().int().nonnegative().optional(),
     size: z.enum(SIZES).optional(),
+    related: z.array(ref).min(1).optional(),
     created: date,
 })
 

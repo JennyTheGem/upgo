@@ -1,5 +1,6 @@
 import "./projectView.css"
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
+import { fromSuggestion, hintedSection } from "../../../src/core/mutate.ts"
 import { summarize } from "../../../src/core/summary.ts"
 import type { Item, Section, Suggestion } from "../../../src/core/schema.ts"
 import { isOpenStatus } from "../../../src/core/vocab.ts"
@@ -206,8 +207,7 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
         if (!reason) return false
         const done: string[] = []
         for (const s of list) {
-            const section = file.sections.some((x) => x.n === s.section) ? s.section! : file.sections[0].n
-            const item = { section, title: s.title, phase: "later" as const, status: "dropped" as const, note: reason, ...(s.body ? { body: s.body } : {}), ...(s.size && { size: s.size }) }
+            const item = fromSuggestion(s, { section: hintedSection(file, s) ?? file.sections[0].n, phase: "later", status: "dropped", note: reason })
             if (!(await run({ op: "add", item }))) break
             done.push(s.id)
         }
@@ -315,6 +315,7 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
                         onAdopt={setAdopting}
                         onDismiss={dismiss}
                         onDrop={dropSuggestions}
+                        onOpenRelated={rowApi.openRelated}
                         sections={file.sections}
                     />
                 ) : (

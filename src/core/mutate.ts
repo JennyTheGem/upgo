@@ -1,4 +1,4 @@
-import type { GoalsFile, Item, Section, Status, Trap } from "./schema.ts"
+import type { GoalsFile, Item, Section, Status, Suggestion, Trap } from "./schema.ts"
 import { slugify, uniqueSlug, UpgoError } from "./util.ts"
 
 // Pure edits on a GoalsFile. Each returns a new file; the store validates and writes it.
@@ -48,6 +48,15 @@ export function addItem(file: GoalsFile, input: ItemInput, day: string): { file:
     const item = { ...input, id, status: input.status ?? "planned", created: input.created ?? day, updated: day } as Item
     f.items.splice(endOfSection(f, item.section), 0, item)
     return { file: f, id }
+}
+
+// A suggestion's section hint, if that section still exists.
+export const hintedSection = (f: GoalsFile, s: Suggestion) => (f.sections.some((x) => x.n === s.section) ? s.section : undefined)
+
+// A suggestion as a new goal, carrying its body, size and related refs.
+export function fromSuggestion(s: Suggestion, rest: Pick<ItemInput, "section" | "phase"> & Partial<Pick<ItemInput, "status" | "note" | "size">>): ItemInput {
+    const { size = s.size, note, ...base } = rest
+    return { title: s.title, ...(s.body ? { body: s.body } : {}), ...(s.related && { related: s.related }), ...base, ...(size && { size }), ...(note && { note }) }
 }
 
 export function editItem(file: GoalsFile, id: string, patch: ItemPatch, day: string): GoalsFile {

@@ -5,12 +5,22 @@ import { existsSync, readFileSync, realpathSync } from "node:fs"
 import fsp from "node:fs/promises"
 import { basename, dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
-import { checkProject } from "./src/core/check.ts"
+import { checkProject, refChecker } from "./src/core/check.ts"
 import * as m from "./src/core/mutate.ts"
 import { checkRegistrable, findEntry, forget, readRegistry, register } from "./src/core/registry.ts"
 import { isManaged, isOpen, PHASE_LABEL, PHASES, POINTER_KEYS, SIZES, STATUSES, type GoalsFile, type Item, type Pointers } from "./src/core/schema.ts"
 import { findProjectDir, GOALS, MD, readGoals, saveGoals, serialize, updateGoals, writeAtomic } from "./src/core/store.ts"
-import { addSuggestion, readSuggestions, removeSuggestions, SUGGESTIONS, updateSuggestions } from "./src/core/suggestions.ts"
+import {
+    addSuggestion,
+    contextText,
+    duplicatesOf,
+    editSuggestion,
+    readSuggestions,
+    removeSuggestions,
+    SUGGESTIONS,
+    updateSuggestions,
+    type SuggestionPatch,
+} from "./src/core/suggestions.ts"
 import { slugify, today, UpgoError } from "./src/core/util.ts"
 
 const CLI = fileURLToPath(import.meta.url).replace(/\\/g, "/")
@@ -36,8 +46,12 @@ Writing (each command validates and regenerates goals.md)
   upgo section list | add "<title>" [--n N] | rename N "<title>" | move N [--before M] | delete N
   upgo trap list | add "<title>" [--body text] [--id slug] | edit <id> [--title t] [--body text] | delete <id>
   upgo purpose ["<text>" | --clear]
-  upgo suggestion list | add "<title>" [--body text] [--section N] [--size S|M|L] | delete <id...>   ideas for the user, only when asked
-  upgo suggestion promote <id> [--section N] [--size S|M|L] [--phase later]   turn a suggestion into a goal and remove it (section and size default to its own)
+  upgo suggestion context              sections, every goal title, dropped reasons and pending ideas; skim it before suggesting
+  upgo suggestion list | add "<title>" [--body text] [--section N] [--size S|M|L] [--related project:id,...] [--force] | delete <id...>
+           ideas for the user, only when asked; add refuses one that repeats a goal or suggestion unless --force
+  upgo suggestion edit <id> [--title t] [--body text] [--section N] [--size S|M|L] [--related ..] [--clear body,section,size,related]
+  upgo suggestion promote <id> [--section N] [--size S|M|L] [--phase later]   turn a suggestion into a goal and remove it (section and size default to its own, related refs carry over)
+  upgo suggestion drop <id...> --reason text [--section N]   save as dropped goals so nobody suggests them again (hinted section, else the first)
 
 Setup and checks
   upgo init [--id slug] [--purpose text] [--no-hooks]   register this folder, install git + Claude hooks
@@ -493,26 +507,78 @@ async function run(argv: string[], io: Io): Promise<number> {
 
         case "suggestion": {
             const [sub, ...args] = rest
-            const { values, positionals } = parse(args, { ...TARGET, body: { type: "string" }, section: { type: "string" }, phase: { type: "string" }, size: { type: "string" } })
+            const { values, positionals } = parse(args, {
+                ...TARGET,
+                title: { type: "string" },
+                body: { type: "string" },
+                section: { type: "string" },
+                phase: { type: "string" },
+                size: { type: "string" },
+                related: { type: "string" },
+                reason: { type: "string" },
+                clear: { type: "string" },
+                force: { type: "boolean" },
+            })
             const dir = projectDir(values)
             const section = int("section", values.section)
             const size = oneOf("size", values.size, SIZES)
+            const related = csv(values.related)
+            // Hints are checked now; refs must resolve, or adopting the suggestion later fails `upgo check`.
+            const checkedGoals = () => {
+                const file = readGoals(dir)
+                if (section !== undefined) m.requireSection(file, section)
+                if (related?.length) {
+                    const bad = related.map(refChecker(file)).filter((p) => p !== null)
+                    if (bad.length) throw new UpgoError("bad --related:", bad)
+                }
+                return file
+            }
+            const pick = (ids: string[]) => {
+                const all = readSuggestions(dir)
+                return ids.map((sid) => {
+                    const s = all.find((x) => x.id === sid)
+                    if (!s) throw new UpgoError(`no suggestion \`${sid}\``)
+                    return s
+                })
+            }
+            // Goals are saved by now: one dismissed meanwhile is fine, a failure must say so or a retry adds them twice.
+            const unlist = async (ids: string[], done: string) => {
+                try {
+                    await updateSuggestions(dir, (all) => all.filter((x) => !ids.includes(x.id)))
+                } catch (e) {
+                    throw new UpgoError(`${done}, but ${SUGGESTIONS} could not be updated (${(e as Error).message.split("\n")[0]}): run \`upgo suggestion delete ${ids.join(" ")}\``)
+                }
+                io.out(`${done}\n`)
+            }
             if (sub === "promote") {
                 const sid = need(positionals[0], "suggestion id")
                 const phase = oneOf("phase", values.phase, PHASES) ?? "later"
-                const s = readSuggestions(dir).find((x) => x.id === sid)
-                if (!s) throw new UpgoError(`no suggestion \`${sid}\``)
+                const [s] = pick([sid])
                 const into = need(section ?? s.section, "--section")
-                const sized = size ?? s.size
                 let added = ""
                 await updateGoals(dir, (file) => {
-                    const r = m.addItem(file, { title: s.title, section: into, phase, ...(s.body ? { body: s.body } : {}), ...(sized && { size: sized }) }, day)
+                    const r = m.addItem(file, m.fromSuggestion(s, { section: into, phase, size }), day)
                     added = r.id
                     return r.file
                 })
-                // The goal is saved: one dismissed meanwhile must not turn this into an error.
-                await updateSuggestions(dir, (list) => list.filter((x) => x.id !== sid))
-                io.out(`promoted ${sid} to ${added}\n`)
+                await unlist([sid], `promoted ${sid} to ${added}`)
+            } else if (sub === "drop") {
+                // Like the dashboard Drop: saved as dropped goals so nobody suggests them again.
+                need(positionals[0], "suggestion id")
+                const reason = need(values.reason?.trim(), "--reason")
+                const ids = [...new Set(positionals)]
+                const list = pick(ids)
+                const added: string[] = []
+                await updateGoals(dir, (file) => {
+                    if (!file.sections.length) throw new UpgoError("no sections yet (add one with `upgo section add`)")
+                    return list.reduce((f, s) => {
+                        const into = section ?? m.hintedSection(f, s) ?? f.sections[0].n
+                        const r = m.addItem(f, m.fromSuggestion(s, { section: into, phase: "later", status: "dropped", note: reason }), day)
+                        added.push(r.id)
+                        return r.file
+                    }, file)
+                })
+                await unlist(ids, `dropped ${added.join(", ")}`)
             } else if (sub === "list") {
                 const list = readSuggestions(dir)
                 if (!list.length) io.out("no suggestions\n")
@@ -520,21 +586,37 @@ async function run(argv: string[], io: Io): Promise<number> {
                     const hints = [s.section !== undefined && `§${s.section}`, s.size].filter(Boolean).join(", ")
                     io.out(`\`${s.id}\` ${s.title}${hints ? ` (${hints})` : ""}\n`)
                 }
+            } else if (sub === "context") {
+                io.out(contextText(readGoals(dir), readSuggestions(dir)))
             } else if (sub === "add") {
                 const title = need(positionals[0], "suggestion title")
-                if (section !== undefined) m.requireSection(readGoals(dir), section)
+                const file = checkedGoals()
                 let id = ""
                 await updateSuggestions(dir, (list) => {
-                    const r = addSuggestion(list, { title, body: values.body, section, size }, day)
+                    const dupes = values.force ? [] : duplicatesOf(title, file, list)
+                    if (dupes.length) throw new UpgoError("this looks like something already there (pass --force to add anyway):", dupes)
+                    const r = addSuggestion(list, { title, body: values.body, section, size, related }, day)
                     id = r.id
                     return r.list
                 })
                 io.out(`suggested ${id}\n`)
+            } else if (sub === "edit") {
+                const sid = need(positionals[0], "suggestion id")
+                const clearable = ["body", "section", "size", "related"] as const
+                const clear = (csv(values.clear) ?? []).map((c) => oneOf("clear", c, clearable)!)
+                checkedGoals()
+                const patch: SuggestionPatch = Object.fromEntries(
+                    Object.entries({ title: values.title, body: values.body, section, size, related }).filter(([, v]) => v !== undefined),
+                )
+                for (const c of clear) patch[c] = null
+                if (!Object.keys(patch).length) throw new UpgoError("nothing to change")
+                await updateSuggestions(dir, (list) => editSuggestion(list, sid, patch))
+                io.out(`edited ${sid}\n`)
             } else if (sub === "delete") {
                 need(positionals[0], "suggestion id")
                 await updateSuggestions(dir, (list) => removeSuggestions(list, positionals))
                 io.out(`deleted ${positionals.join(", ")}\n`)
-            } else throw new UpgoError("usage: upgo suggestion list | add | delete | promote")
+            } else throw new UpgoError("usage: upgo suggestion list | context | add | edit | delete | promote | drop")
             return 0
         }
 

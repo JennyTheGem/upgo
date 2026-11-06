@@ -6,6 +6,7 @@ import EmptyState from "../primitives/emptyState/EmptyState.tsx"
 import ErrorState from "../primitives/errorState/ErrorState.tsx"
 import SelectionBar from "../primitives/selectionBar/SelectionBar.tsx"
 import { copyForAgent } from "./format.ts"
+import { RelatedChips } from "./ItemDetail.tsx"
 import Markdown from "./Markdown.tsx"
 
 type Props = {
@@ -15,6 +16,8 @@ type Props = {
     onAdopt: (list: Suggestion[]) => void
     onDismiss: (ids: string[]) => Promise<boolean>
     onDrop: (list: Suggestion[]) => Promise<boolean>
+    // A related ref, `project:item`.
+    onOpenRelated: (ref: string) => void
     sections: Section[]
 }
 
@@ -27,7 +30,7 @@ const toggled = (set: Set<string>, id: string) => {
 }
 
 // Agents add these with `upgo suggestion add`. Rows look and act like goal rows.
-export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt, onDismiss, onDrop, sections }: Props) {
+export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt, onDismiss, onDrop, onOpenRelated, sections }: Props) {
     const [ticked, setTicked] = useState<Set<string>>(new Set())
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
     const chosen = suggestions.filter((s) => ticked.has(s.id))
@@ -100,6 +103,7 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
                 {open && (
                     <div className="itemDetail">
                         {s.body ? <Markdown className="itemBody" text={s.body} /> : <span className="caption op-50">No details.</span>}
+                        {s.related && <RelatedChips refs={s.related} onOpen={onOpenRelated} />}
                         <span className="itemMeta caption-small op-50">suggested {s.created}</span>
                     </div>
                 )}

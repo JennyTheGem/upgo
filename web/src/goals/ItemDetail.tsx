@@ -41,16 +41,7 @@ export default function ItemDetail({ item, projectId, onOpen }: { item: Item; pr
                     ))}
                 </dl>
             )}
-            {item.related && (
-                <div className="itemMeta">
-                    <span className="microLabel">Related</span>
-                    {item.related.map((r) => (
-                        <Chip key={r} mono title={`Open ${r}`} onClick={() => onOpen(r)}>
-                            {r}
-                        </Chip>
-                    ))}
-                </div>
-            )}
+            {item.related && <RelatedChips refs={item.related} onOpen={onOpen} />}
             {item.note && (
                 <div className="itemMeta">
                     <span className="microLabel">{item.status === "dropped" ? "Reason" : "Note"}</span>
@@ -72,6 +63,19 @@ export default function ItemDetail({ item, projectId, onOpen }: { item: Item; pr
             {file && (
                 <Markdown className="detailText" text={file.text} tabIndex={0} role="region" aria-label={`Detail file ${file.path}`} />
             )}
+        </div>
+    )
+}
+
+export function RelatedChips({ refs, onOpen }: { refs: string[]; onOpen: (ref: string) => void }) {
+    return (
+        <div className="itemMeta">
+            <span className="microLabel">Related</span>
+            {refs.map((r) => (
+                <Chip key={r} mono title={`Open ${r}`} onClick={() => onOpen(r)}>
+                    {r}
+                </Chip>
+            ))}
         </div>
     )
 }

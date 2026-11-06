@@ -14,7 +14,7 @@ function withSuggestions() {
     const initial = projects()
     initial.alpha.suggestions = [
         { id: "dark-mode", title: "Dark mode", body: "Users asked twice.", created: DAY },
-        { id: "offline", title: "Offline cache", section: 2, size: "M", created: DAY },
+        { id: "offline", title: "Offline cache", section: 2, size: "M", related: ["alpha:one-device"], created: DAY },
     ]
     return initial
 }
@@ -106,6 +106,14 @@ describe("suggestions tab", () => {
         expect(dropped[0].body).toBe("Users asked twice.")
     })
 
+    it("shows related refs as chips that open the goal", async () => {
+        const { user } = await setup(withSuggestions())
+        const panel = await openTab(user)
+        await user.click(within(panel).getByRole("button", { name: /Offline cache/, expanded: false }))
+        await user.click(within(panel).getByRole("button", { name: "alpha:one-device" }))
+        expect(screen.getByRole("tab", { name: "Goals", selected: true })).toBeInTheDocument()
+    })
+
     it("adds one suggestion to goals from its row button", async () => {
         const { user, server } = await setup(withSuggestions())
         const panel = await openTab(user)
@@ -116,7 +124,7 @@ describe("suggestions tab", () => {
         expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveValue("Offline cache")
         await user.click(within(dialog).getByRole("button", { name: "Add item" }))
         await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
-        expect(server.state.alpha.file!.items.find((i) => i.title === "Offline cache")).toMatchObject({ section: 2, size: "M" })
+        expect(server.state.alpha.file!.items.find((i) => i.title === "Offline cache")).toMatchObject({ section: 2, size: "M", related: ["alpha:one-device"] })
         await waitFor(() => expect(server.state.alpha.suggestions!.map((s) => s.id)).toEqual(["dark-mode"]))
     })
 

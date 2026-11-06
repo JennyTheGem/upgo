@@ -155,6 +155,122 @@
       "note": "upgo suggestion add|list|delete into gitignored suggestions.json; Goals/Suggestions tabs with goal-style rows: Add to goals, copy, dismiss"
     },
     {
+      "id": "show-the-dropped-reason-on-a-near-duplicate",
+      "section": 2,
+      "title": "Show the dropped reason on a near duplicate",
+      "body": "When a suggestion looks like a dropped goal, show that goal and its reason right on the row.",
+      "phase": "next",
+      "status": "planned",
+      "size": "M",
+      "created": "2026-11-06",
+      "updated": "2026-11-06"
+    },
+    {
+      "id": "undo-for-dismiss-and-drop",
+      "section": 2,
+      "title": "Undo for dismiss and drop",
+      "body": "Undo toast after Dismiss and Drop, like goal ops already have.",
+      "phase": "next",
+      "status": "planned",
+      "size": "M",
+      "created": "2026-11-06",
+      "updated": "2026-11-06"
+    },
+    {
+      "id": "drop-reason-presets",
+      "section": 2,
+      "title": "Drop reason presets",
+      "body": "Chips in the Drop prompt: Out of scope, Already done, Not worth it, Duplicate. Still allow free text.",
+      "phase": "next",
+      "status": "planned",
+      "size": "S",
+      "created": "2026-11-06",
+      "updated": "2026-11-06"
+    },
+    {
+      "id": "one-click-adopt-with-defaults",
+      "section": 2,
+      "title": "One click adopt with defaults",
+      "body": "Shift+click on Add to goals skips the modal and adds with the hinted section and phase `later`.",
+      "phase": "next",
+      "status": "planned",
+      "size": "S",
+      "created": "2026-11-06",
+      "updated": "2026-11-06"
+    },
+    {
+      "id": "keyboard-shortcuts-in-suggestions",
+      "section": 2,
+      "title": "Keyboard shortcuts in suggestions",
+      "body": "j/k to move, a to add, d to drop, x to dismiss, space to tick.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "M",
+      "created": "2026-11-06",
+      "updated": "2026-11-06",
+      "note": "not worth"
+    },
+    {
+      "id": "edit-a-suggestion-in-place",
+      "section": 2,
+      "title": "Edit a suggestion in place",
+      "body": "Fix the title or body of a suggestion in the dashboard before deciding.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "M",
+      "created": "2026-11-06",
+      "updated": "2026-11-06",
+      "note": "not worth"
+    },
+    {
+      "id": "search-and-sort-suggestions",
+      "section": 2,
+      "title": "Search and sort suggestions",
+      "body": "Filter by text, sort by newest or size. Reuse the goals FilterBar look.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "S",
+      "created": "2026-11-06",
+      "updated": "2026-11-06",
+      "note": "not worth"
+    },
+    {
+      "id": "suggestions-across-all-projects",
+      "section": 2,
+      "title": "Suggestions across all projects",
+      "body": "One view on the overview listing every project's suggestions, grouped by project.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "L",
+      "created": "2026-11-06",
+      "updated": "2026-11-06",
+      "note": "not worth"
+    },
+    {
+      "id": "suggestion-count-on-project-cards",
+      "section": 2,
+      "title": "Suggestion count on project cards",
+      "body": "Small badge in the sidebar and overview so new ideas get noticed.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "S",
+      "created": "2026-11-06",
+      "updated": "2026-11-06",
+      "note": "not worth"
+    },
+    {
+      "id": "merge-suggestions",
+      "section": 2,
+      "title": "Merge suggestions",
+      "body": "Tick two or more and merge into one, titles kept in the body.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "M",
+      "created": "2026-11-06",
+      "updated": "2026-11-06",
+      "note": "not worth"
+    },
+    {
       "id": "migrate-rest",
       "section": 3,
       "title": "Migrate remaining repos to upgo",
@@ -419,7 +535,7 @@
       "title": "upgo suggestion edit",
       "body": "`upgo suggestion edit <id> [--title t] [--body text] [--section N] [--size S|M|L]`, so agents can fix a suggestion without deleting and re-adding it.",
       "phase": "next",
-      "status": "planned",
+      "status": "done",
       "size": "S",
       "pointers": {
         "files": [
@@ -427,7 +543,104 @@
         ]
       },
       "created": "2026-11-06",
-      "updated": "2026-11-06"
+      "updated": "2026-11-07",
+      "note": "upgo suggestion edit with --title/--body/--section/--size/--related and --clear"
+    },
+    {
+      "id": "cli-suggestion-drop",
+      "section": 1,
+      "title": "CLI suggestion drop",
+      "body": "`upgo suggestion drop <id> --reason ... [--section N]`, same as the dashboard Drop, so agents can do it too.",
+      "phase": "next",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-06",
+      "updated": "2026-11-07",
+      "note": "upgo suggestion drop <id...> --reason, shares fromSuggestion with the dashboard Drop"
+    },
+    {
+      "id": "duplicate-guard-on-suggestion-add",
+      "section": 1,
+      "title": "Duplicate guard on suggestion add",
+      "body": "Warn or refuse when a new suggestion matches an existing goal (open, done or dropped) by slug or similar title. `--force` to override.",
+      "phase": "next",
+      "status": "done",
+      "size": "M",
+      "created": "2026-11-06",
+      "updated": "2026-11-07",
+      "note": "add refuses slug or similar-title matches against goals and suggestions, --force overrides"
+    },
+    {
+      "id": "compact-context-for-agents-before-suggesting",
+      "section": 1,
+      "title": "Compact context for agents before suggesting",
+      "body": "`upgo suggestion context`: prints all goal titles plus dropped titles with reasons in a few lines, so agents check before suggesting.",
+      "phase": "next",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-06",
+      "updated": "2026-11-07",
+      "note": "upgo suggestion context: open, done, dropped with reasons, pending"
+    },
+    {
+      "id": "related-goals-on-suggestions",
+      "section": 1,
+      "title": "Related goals on suggestions",
+      "body": "`related` refs on suggestions, rendered as chips like on goal rows. Carry over on adopt.",
+      "phase": "next",
+      "status": "done",
+      "size": "M",
+      "created": "2026-11-06",
+      "updated": "2026-11-07",
+      "note": "related on suggestions, validated on add/edit, chips in the panel, carried on adopt, promote and drop"
+    },
+    {
+      "id": "why-field-on-suggestions",
+      "section": 1,
+      "title": "Why field on suggestions",
+      "body": "Separate short rationale from the body, shown on the collapsed row as a caption.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "S",
+      "created": "2026-11-06",
+      "updated": "2026-11-06",
+      "note": "not worth"
+    },
+    {
+      "id": "who-suggested-it",
+      "section": 1,
+      "title": "Who suggested it",
+      "body": "Optional `source` (agent or session name) on each suggestion, shown in the row meta.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "S",
+      "created": "2026-11-06",
+      "updated": "2026-11-06",
+      "note": "not worth"
+    },
+    {
+      "id": "snooze-a-suggestion",
+      "section": 1,
+      "title": "Snooze a suggestion",
+      "body": "Hide until a date (`until` field), then it comes back. For not now but maybe later.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "M",
+      "created": "2026-11-06",
+      "updated": "2026-11-06",
+      "note": "not worth"
+    },
+    {
+      "id": "batch-add-suggestions",
+      "section": 1,
+      "title": "Batch add suggestions",
+      "body": "`upgo suggestion add --json <file|->` to add many at once with one lock and one write.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "S",
+      "created": "2026-11-06",
+      "updated": "2026-11-06",
+      "note": "not worth"
     }
   ]
 }

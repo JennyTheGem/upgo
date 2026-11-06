@@ -10,17 +10,8 @@ import { UpgoError } from "./util.ts"
 
 const normalize = (s: string) => s.replace(/\r\n/g, "\n")
 
-// Everything `upgo check` verifies for one project dir. Empty array = clean.
-export function checkProject(dir: string, registry: Entry[] = readRegistry()): string[] {
-    let file: GoalsFile
-    try {
-        file = readGoals(dir)
-    } catch (e) {
-        if (e instanceof UpgoError) return e.details.length ? e.details : [e.message]
-        throw e
-    }
-    const issues = localIssues(file)
-
+// What is wrong with a `project:item` ref seen from `file`, or null. Other projects load once each.
+export function refChecker(file: GoalsFile, registry: Entry[] = readRegistry()): (ref: string) => string | null {
     const others = new Map<string, GoalsFile | null>()
     const load = (id: string) => {
         if (!others.has(id)) {
@@ -37,12 +28,30 @@ export function checkProject(dir: string, registry: Entry[] = readRegistry()): s
         }
         return others.get(id)
     }
+    return (ref) => {
+        const [project, id] = ref.split(":")
+        const target = project === file.project ? file : load(project)
+        if (!target) return `\`${ref}\` points at a project that is not registered or not readable`
+        return target.items.some((i) => i.id === id) ? null : `\`${ref}\` does not exist`
+    }
+}
+
+// Everything `upgo check` verifies for one project dir. Empty array = clean.
+export function checkProject(dir: string, registry: Entry[] = readRegistry()): string[] {
+    let file: GoalsFile
+    try {
+        file = readGoals(dir)
+    } catch (e) {
+        if (e instanceof UpgoError) return e.details.length ? e.details : [e.message]
+        throw e
+    }
+    const issues = localIssues(file)
+
+    const problem = refChecker(file, registry)
     for (const item of file.items) {
         for (const ref of item.related ?? []) {
-            const [project, id] = ref.split(":")
-            const target = project === file.project ? file : load(project)
-            if (target === undefined || target === null) issues.push(`item \`${item.id}\`: related \`${ref}\` points at a project that is not registered or not readable`)
-            else if (!target.items.some((i) => i.id === id)) issues.push(`item \`${item.id}\`: related \`${ref}\` does not exist`)
+            const p = problem(ref)
+            if (p) issues.push(`item \`${item.id}\`: related ${p}`)
         }
         if (item.detail && !existsSync(resolve(dir, item.detail))) issues.push(`item \`${item.id}\`: detail file ${item.detail} does not exist`)
     }

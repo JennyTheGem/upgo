@@ -316,7 +316,7 @@ describe("writing", () => {
         const goals = readFileSync(join(cwd, GOALS), "utf8")
         expect(ok(cli(["suggestion", "list"], { cwd }))).toBe("no suggestions\n")
         expect(ok(cli(["suggestion", "add", "Dark mode", "--body", "Users asked"], { cwd }))).toBe("suggested dark-mode\n")
-        expect(ok(cli(["suggestion", "add", "Dark mode"], { cwd }))).toBe("suggested dark-mode-2\n")
+        expect(ok(cli(["suggestion", "add", "Dark mode", "--force"], { cwd }))).toBe("suggested dark-mode-2\n")
         expect(ok(cli(["suggestion", "list"], { cwd }))).toBe("`dark-mode` Dark mode\n`dark-mode-2` Dark mode\n")
         expect(JSON.parse(readFileSync(join(cwd, "suggestions.json"), "utf8")).suggestions[0]).toMatchObject({ id: "dark-mode", title: "Dark mode", body: "Users asked" })
         fails(cli(["suggestion", "add", "Bad \u2014 dash"], { cwd }), /em dash/)
@@ -346,6 +346,73 @@ describe("writing", () => {
         expect(ok(cli(["suggestion", "list"], { cwd }))).toBe("`offline` Offline (§1, M)\n")
         ok(cli(["suggestion", "promote", "offline"], { cwd }))
         expect(items(cwd).find((i) => i.id === "offline")).toMatchObject({ section: 1, size: "M", phase: "later" })
+    })
+
+    it("refuses a suggestion that repeats a goal or suggestion unless --force", async () => {
+        const cwd = await registered()
+        fails(cli(["suggestion", "add", "Eta"], { cwd }), /already there[\s\S]*goal `eta` Eta \(dropped: not needed\)/)
+        fails(cli(["suggestion", "add", "The alpha"], { cwd }), /goal `alpha`/)
+        ok(cli(["suggestion", "add", "Offline sync for notes"], { cwd }))
+        fails(cli(["suggestion", "add", "Offline notes sync"], { cwd }), /suggestion `offline-sync-for-notes`/)
+        expect(ok(cli(["suggestion", "add", "Offline mode"], { cwd }))).toBe("suggested offline-mode\n")
+        expect(ok(cli(["suggestion", "add", "Eta", "--force"], { cwd }))).toBe("suggested eta\n")
+    })
+
+    it("edits a suggestion in place", async () => {
+        const cwd = await registered()
+        ok(cli(["suggestion", "add", "Offline", "--body", "Why", "--section", "1", "--size", "M", "--related", "demo:alpha"], { cwd }))
+        fails(cli(["suggestion", "edit", "offline"], { cwd }), /nothing to change/)
+        fails(cli(["suggestion", "edit", "ghost", "--title", "X"], { cwd }), /no suggestion `ghost`/)
+        fails(cli(["suggestion", "edit", "offline", "--section", "99"], { cwd }), /no section 99/)
+        ok(cli(["suggestion", "edit", "offline", "--title", "Offline first", "--size", "L", "--clear", "body,section", "--related", ""], { cwd }))
+        const [s] = JSON.parse(readFileSync(join(cwd, "suggestions.json"), "utf8")).suggestions
+        expect(s).toEqual({ id: "offline", title: "Offline first", size: "L", created: s.created })
+    })
+
+    it("keeps related refs on a suggestion and carries them to the goal", async () => {
+        const cwd = await registered()
+        fails(cli(["suggestion", "add", "Linked", "--related", "demo:ghost"], { cwd }), /bad --related[\s\S]*`demo:ghost` does not exist/)
+        ok(cli(["suggestion", "add", "Linked", "--section", "1", "--related", "demo:alpha"], { cwd }))
+        ok(cli(["suggestion", "promote", "linked"], { cwd }))
+        expect(item(cwd, "linked")).toMatchObject({ related: ["demo:alpha"] })
+    })
+
+    it("drops suggestions as dropped goals with a reason", async () => {
+        const cwd = await registered()
+        ok(cli(["suggestion", "add", "Kiosk", "--section", "2", "--size", "S", "--body", "Why"], { cwd }))
+        ok(cli(["suggestion", "add", "Widgets"], { cwd }))
+        fails(cli(["suggestion", "drop", "kiosk"], { cwd }), /missing --reason/)
+        fails(cli(["suggestion", "drop", "ghost", "--reason", "no"], { cwd }), /no suggestion `ghost`/)
+        expect(ok(cli(["suggestion", "drop", "kiosk", "widgets", "--reason", "not for us"], { cwd }))).toBe("dropped kiosk, widgets\n")
+        expect(item(cwd, "kiosk")).toMatchObject({ section: 2, size: "S", body: "Why", status: "dropped", note: "not for us", phase: "later" })
+        expect(item(cwd, "widgets")).toMatchObject({ section: 1, status: "dropped" })
+        expect(ok(cli(["suggestion", "list"], { cwd }))).toBe("no suggestions\n")
+        expect(ok(cli(["check"], { cwd }))).toMatch(/^ok/)
+    })
+
+    it("says the goal is saved when the suggestion cannot be removed", async () => {
+        const cwd = await registered()
+        ok(cli(["suggestion", "add", "Kiosk", "--section", "1"], { cwd }))
+        writeFileSync(join(cwd, "suggestions.json.lock"), "held")
+        fails(cli(["suggestion", "promote", "kiosk"], { cwd }), /promoted kiosk to kiosk, but suggestions.json could not be updated .*upgo suggestion delete kiosk/)
+        expect(item(cwd, "kiosk")).toMatchObject({ section: 1 })
+    })
+
+    it("prints compact context for agents", async () => {
+        const cwd = await registered()
+        ok(cli(["suggestion", "add", "Kiosk"], { cwd }))
+        expect(ok(cli(["suggestion", "context"], { cwd }))).toBe(
+            [
+                "demo: Demo project",
+                "sections: 1. Core; 2. UI; 3. Empty",
+                "open (5): Alpha; Beta; Gamma; Delta; Epsilon",
+                "done (1): Zeta",
+                "dropped (1), never suggest again:",
+                "- Eta (not needed)",
+                "pending suggestions (1): Kiosk",
+                "",
+            ].join("\n"),
+        )
     })
 
     it("targets another project with --dir and --project", async () => {

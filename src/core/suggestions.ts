@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { EM_DASH } from "./rules.ts"
-import { formatIssues, suggestionsFileSchema, type Suggestion } from "./schema.ts"
+import { formatIssues, isOpenStatus, suggestionsFileSchema, type GoalsFile, type Status, type Suggestion } from "./schema.ts"
 import { withLock, writeAtomic } from "./store.ts"
 import { slugify, uniqueSlug, UpgoError } from "./util.ts"
 
@@ -47,16 +47,81 @@ export async function updateSuggestions(dir: string, mutate: (list: Suggestion[]
     })
 }
 
-export function addSuggestion(
-    list: Suggestion[],
-    input: { title: string; body?: string; section?: number; size?: Suggestion["size"] },
-    day: string,
-): { list: Suggestion[]; id: string } {
-    if (JSON.stringify(input).includes(EM_DASH)) throw new UpgoError("a suggestion contains an em dash (U+2014); use a comma, colon or hyphen")
+type Hints = { body?: string; section?: number; size?: Suggestion["size"]; related?: string[] }
+export type SuggestionPatch = { title?: string } & { [K in keyof Hints]?: Hints[K] | null }
+
+function noEmDash(x: unknown) {
+    if (JSON.stringify(x).includes(EM_DASH)) throw new UpgoError("a suggestion contains an em dash (U+2014); use a comma, colon or hyphen")
+}
+
+export function addSuggestion(list: Suggestion[], input: { title: string } & Hints, day: string): { list: Suggestion[]; id: string } {
+    noEmDash(input)
     const id = uniqueSlug(slugify(input.title), new Set(list.map((s) => s.id)))
-    const { title, body, section, size } = input
-    const s: Suggestion = { id, title, ...(body?.trim() ? { body } : {}), ...(section !== undefined && { section }), ...(size && { size }), created: day }
+    const { title, body, section, size, related } = input
+    const s: Suggestion = {
+        id,
+        title,
+        ...(body?.trim() ? { body } : {}),
+        ...(section !== undefined && { section }),
+        ...(size && { size }),
+        ...(related?.length && { related }),
+        created: day,
+    }
     return { list: [...list, s], id }
+}
+
+// null, a blank body or no refs clears a field; the id stays.
+export function editSuggestion(list: Suggestion[], id: string, patch: SuggestionPatch): Suggestion[] {
+    noEmDash(patch)
+    if (!list.some((s) => s.id === id)) throw new UpgoError(`no suggestion \`${id}\``)
+    return list.map((s) => {
+        if (s.id !== id) return s
+        const out: Record<string, unknown> = { ...s }
+        for (const [k, v] of Object.entries(patch)) {
+            if (v === null || (k === "body" && !String(v).trim()) || (Array.isArray(v) && !v.length)) delete out[k]
+            else if (v !== undefined) out[k] = v
+        }
+        return out as Suggestion
+    })
+}
+
+const STOP = new Set(["a", "an", "the", "and", "or", "for", "to", "of", "on", "in", "with", "by", "from", "is"])
+const words = (t: string) => new Set(slugify(t, 200).split("-").filter((w) => !STOP.has(w)))
+
+// Same slug, or at least two thirds of the longer title's words shared.
+export function similarTitle(a: string, b: string): boolean {
+    if (slugify(a) === slugify(b)) return true
+    const x = words(a)
+    const y = words(b)
+    const shared = [...x].filter((w) => y.has(w)).length
+    return shared > 0 && shared / Math.max(x.size, y.size) >= 2 / 3
+}
+
+// Goals (any status) and suggestions a new suggestion would repeat, one line each.
+export function duplicatesOf(title: string, file: GoalsFile, list: Suggestion[]): string[] {
+    const slug = slugify(title)
+    const hit = (id: string, t: string) => id === slug || similarTitle(title, t)
+    return [
+        ...file.items.filter((i) => hit(i.id, i.title)).map((i) => `goal \`${i.id}\` ${i.title} (${i.status}${i.status === "dropped" && i.note ? `: ${i.note}` : ""})`),
+        ...list.filter((s) => hit(s.id, s.title)).map((s) => `suggestion \`${s.id}\` ${s.title}`),
+    ]
+}
+
+// Everything an agent should skim before suggesting, in a few lines.
+export function contextText(file: GoalsFile, list: Suggestion[]): string {
+    const titles = (st: (s: Status) => boolean) => file.items.filter((i) => st(i.status)).map((i) => i.title)
+    const row = (label: string, xs: string[]) => `${label} (${xs.length})${xs.length ? `: ${xs.join("; ")}` : ""}`
+    const dropped = file.items.filter((i) => i.status === "dropped")
+    const lines = [
+        `${file.project}${file.purpose ? `: ${file.purpose}` : ""}`,
+        `sections: ${file.sections.map((s) => `${s.n}. ${s.title}`).join("; ") || "none"}`,
+        row("open", titles(isOpenStatus)),
+        row("done", titles((s) => s === "done")),
+        `dropped (${dropped.length})${dropped.length ? ", never suggest again:" : ""}`,
+        ...dropped.map((i) => `- ${i.title} (${i.note?.trim() || "no reason"})`),
+        row("pending suggestions", list.map((s) => s.title)),
+    ]
+    return lines.join("\n") + "\n"
 }
 
 export function removeSuggestions(list: Suggestion[], ids: string[]): Suggestion[] {
