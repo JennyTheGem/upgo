@@ -29,6 +29,7 @@
     justify-content: center;
     padding: var(--padding-sm);
     box-sizing: border-box;
+    border: 1px solid transparent;
     border-radius: var(--radius-sm);
     transition: background-color var(--duration-instant) var(--ease-default);
 }
@@ -45,17 +46,13 @@
 /* The active project is the one under the stage light. */
 .projectButton--active,
 .projectButton--active:hover {
-    background: var(--stage-wash);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent-solid) 35%, transparent);
-}
-
-.projectButton--active:focus-visible {
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent-solid) 35%, transparent), 0 0 0 3px var(--color-focus-ring);
+    background: none;
+    border-color: color-mix(in srgb, var(--color-accent-solid) 60%, transparent);
 }
 
 .projectButtonRow {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: var(--gap-sm);
     min-width: 0;
 }
@@ -73,8 +70,38 @@
 
 .projectNow {
     flex-shrink: 0;
-    font-weight: 600;
-    color: var(--tone-accent);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--gap-2xs);
+    font-weight: 550;
+    opacity: .8;
+}
+
+.projectNow::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-accent-solid);
+}
+
+.projectProgress {
+    display: block;
+    height: 2px;
+    border-radius: 1px;
+    background-color: var(--fill-subtle);
+    overflow: hidden;
+}
+
+.projectProgress > span {
+    display: block;
+    height: 100%;
+    background-color: var(--phase-done);
+    opacity: .5;
+}
+
+.projectButton--active .projectProgress > span {
+    opacity: 1;
 }
 
 .projectCount {
@@ -87,10 +114,6 @@
 
 .projectMeta {
     opacity: .55;
-}
-
-.projectTour {
-    border: 1px solid var(--color-border-subtle);
 }
 
 .projectError {
@@ -133,4 +156,5 @@ html[data-reduce-motion] .projectButton {
 .projectFinished {
     flex-shrink: 0;
     align-self: center;
+    opacity: .45;
 }

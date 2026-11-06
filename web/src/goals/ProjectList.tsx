@@ -1,6 +1,5 @@
 import "./projectList.css"
 import type { ProjectSummary } from "../api.ts"
-import CountBar from "./CountBar.tsx"
 import { isFinished, plural } from "./counts.ts"
 import Icon from "../primitives/icon/Icon.tsx"
 
@@ -42,20 +41,34 @@ export default function ProjectList({ projects, selected, onSelect }: { projects
                         >
                             <span className="projectButtonRow">
                                 <span className="projectName font-bold truncate">{p.id}</span>
-                                {p.now.length > 0 && <span className="projectNow caption-small tabular">{p.now.length} now</span>}
+                                {p.now.length > 0 && (
+                                    <span className="projectNow caption-small tabular" title={`${p.now.length} now`} aria-label={`${p.now.length} now`}>
+                                        {p.now.length}
+                                    </span>
+                                )}
                                 {isFinished(p) ? (
-                                    <Icon name="iconify:check-circle-rounded" color="var(--tone-green)" className="projectFinished" alt="finished" />
+                                    <Icon name="iconify:check-circle-rounded" color="currentColor" className="projectFinished" alt="finished" />
                                 ) : !p.error && (
                                     <span className="projectCount caption-small tabular" title={`${p.open} open`} aria-label={`${p.open} open`}>
                                         {p.open}
                                     </span>
                                 )}
                             </span>
-                            {p.error ? <span className="projectError caption-small break-words">{p.error}</span> : <CountBar thin counts={p} />}
+                            {p.error ? <span className="projectError caption-small break-words">{p.error}</span> : <Progress done={p.done} open={p.open} />}
                         </button>
                     </li>
                 ))}
             </ul>
         </nav>
+    )
+}
+
+// Played over total, one tone. The phase breakdown lives in the project view.
+function Progress({ done, open }: { done: number; open: number }) {
+    const total = done + open
+    return (
+        <span className="projectProgress" aria-hidden title={`${done} of ${total} done`}>
+            <span style={{ width: `${total ? (done / total) * 100 : 0}%` }} />
+        </span>
     )
 }
