@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs"
 import { join, resolve } from "node:path"
+import { tryArchive } from "./archive.ts"
 import { readRegistry, type Entry } from "./registry.ts"
 import { render } from "./render.ts"
 import { localIssues } from "./rules.ts"
@@ -10,29 +11,25 @@ import { UpgoError } from "./util.ts"
 
 const normalize = (s: string) => s.replace(/\r\n/g, "\n")
 
-// What is wrong with a `project:item` ref seen from `file`, or null. Other projects load once each.
-export function refChecker(file: GoalsFile, registry: Entry[] = readRegistry()): (ref: string) => string | null {
-    const others = new Map<string, GoalsFile | null>()
-    const load = (id: string) => {
-        if (!others.has(id)) {
-            const entry = registry.find((e) => e.id === id)
-            let loaded: GoalsFile | null = null
-            if (entry) {
-                try {
-                    loaded = readGoals(entry.path)
-                } catch {
-                    loaded = null
-                }
-            }
-            others.set(id, loaded)
+// What is wrong with a `project:item` ref seen from `file` (in `dir`), or null. Each project's ids load once.
+// Archived items still count, so archiving never breaks a ref.
+export function refChecker(file: GoalsFile, dir: string, registry: Entry[] = readRegistry()): (ref: string) => string | null {
+    const ids = (f: GoalsFile, path: string) => new Set([...f.items, ...tryArchive(path).archived].map((i) => i.id))
+    const other = (project: string) => {
+        const entry = registry.find((e) => e.id === project)
+        try {
+            return entry ? ids(readGoals(entry.path), entry.path) : null
+        } catch {
+            return null
         }
-        return others.get(id)
     }
+    const known = new Map<string, Set<string> | null>()
     return (ref) => {
         const [project, id] = ref.split(":")
-        const target = project === file.project ? file : load(project)
+        if (!known.has(project)) known.set(project, project === file.project ? ids(file, dir) : other(project))
+        const target = known.get(project)
         if (!target) return `\`${ref}\` points at a project that is not registered or not readable`
-        return target.items.some((i) => i.id === id) ? null : `\`${ref}\` does not exist`
+        return target.has(id) ? null : `\`${ref}\` does not exist`
     }
 }
 
@@ -47,7 +44,7 @@ export function checkProject(dir: string, registry: Entry[] = readRegistry()): s
     }
     const issues = localIssues(file)
 
-    const problem = refChecker(file, registry)
+    const problem = refChecker(file, dir, registry)
     for (const item of file.items) {
         for (const ref of item.related ?? []) {
             const p = problem(ref)
@@ -55,6 +52,9 @@ export function checkProject(dir: string, registry: Entry[] = readRegistry()): s
         }
         if (item.detail && !existsSync(resolve(dir, item.detail))) issues.push(`item \`${item.id}\`: detail file ${item.detail} does not exist`)
     }
+
+    const { archiveError } = tryArchive(dir)
+    if (archiveError) issues.push(archiveError)
 
     const { suggestionsError } = trySuggestions(dir)
     if (suggestionsError) issues.push(suggestionsError)

@@ -36,6 +36,7 @@ Then `upgo help`. The agent skill ships in the package: copy `$(npm root -g)/@up
 Agents follow the `upgo` skill. In practice:
 
 - "work on `random-logouts`": the agent runs `upgo show`, does the work, then `upgo done <id> --note "..."`.
+- "pick up the next thing": `upgo next` prints the top now item (else the first next one) in full.
 - "what's in way later?": `upgo list --phase wayLater`. Done work: `upgo list --status done --section 5`.
 - Bugs or gaps they find are added with `upgo add`; things everyone must know before touching an area become traps (`upgo trap add`).
 - They cannot hand-edit `goals.json` or `goals.md`: a Claude hook blocks it.
@@ -53,7 +54,8 @@ Agents follow the `upgo` skill. In practice:
 ```
 upgo projects                                  registered projects, open counts
 upgo list [--phase later,wayLater] [--status done] [--section 5] [--search text] [--all]
-upgo show <id>                                 one item in full (also project:id)
+upgo show <id>                                 one item in full (also project:id, also archived ones)
+upgo next                                      the first now item (else first next) in full
 upgo add "Title" --section 5 --phase next --body "why" --files src/x.ts --size S
 upgo edit <id> --phase later --status partial  same fields as add; --clear body,size,...
 upgo done <id> --note "what shipped"           upgo drop <id> --reason "why not"
@@ -68,6 +70,7 @@ upgo suggestion promote <id> [--section 1] [--size M] [--phase next]   add it as
 upgo suggestion drop <id...> --reason "..." [--section 1]   save as dropped goals, like the dashboard Drop
 upgo check [--all]                             validate one or every project
 upgo render                                    rewrite goals.md from goals.json
+upgo archive [--months 6]                      move done items not updated for N months to goals-archive.json
 upgo ui [--port 4141] [--no-open]
 ```
 
@@ -75,11 +78,11 @@ Every command works from inside the project folder, or anywhere with `--dir <pat
 
 ## What a project holds
 
-- **`goals.json`** (committed with the repo): the source of truth. Sections (`n` is the § number, array order is display order), traps, and items. An item has an `id` (slug, unique per project), `section`, `title`, optional `body`, `phase` (`now`, `next`, `later`, `wayLater`, `maybe`), `status` (`planned`, `partial`, `done`, `dropped`), `size` (`S`/`M`/`L`), `scope`, `pointers` (`files`, `seam`, `depends`, `trap`, `how`, `check`, `options`, `where`), `detail` (a `.md` file in the repo), `related` (`project:id` refs, also across projects), dates, and `note` (done note or drop reason). Done and dropped items stay in the file: that is the archive.
+- **`goals.json`** (committed with the repo): the source of truth. Sections (`n` is the § number, array order is display order), traps, and items. An item has an `id` (slug, unique per project), `section`, `title`, optional `body`, `phase` (`now`, `next`, `later`, `wayLater`, `maybe`), `status` (`planned`, `partial`, `done`, `dropped`), `size` (`S`/`M`/`L`), `scope`, `pointers` (`files`, `seam`, `depends`, `trap`, `how`, `check`, `options`, `where`), `detail` (a `.md` file in the repo), `related` (`project:id` refs, also across projects), dates, and `note` (done note or drop reason). Done and dropped items stay in the file until `upgo archive` moves done ones older than N months (default 6) to `goals-archive.json` (committed too). Archived items still resolve as `related` refs, show with `upgo show` and block repeat suggestions; dropped ones always stay.
 - **`goals.md`** (committed, generated): what CLAUDE.md auto-loads with `@goals.md`. Traps, then the open now/next/later items one line each; way later and maybe show as counts; done and dropped never appear.
 - **`suggestions.json`** (gitignored by `upgo init` in a git repo): ideas an agent left for the user, managed with `upgo suggestion`, never in `goals.md`.
 - **`docs/goalsDetails/*.md`**: long-form detail for an open item, linked through `detail`.
-- **Hooks** installed by `upgo init`: a git pre-commit that runs `upgo check` (a broken `goals.json` or `suggestions.json`, or a stale `goals.md`, blocks the commit), and a PreToolUse hook in the repo's `.claude/settings.json` that stops agents from editing `goals.json`, `goals.md` and `suggestions.json` by hand.
+- **Hooks** installed by `upgo init`: a git pre-commit that runs `upgo check` (a broken `goals.json`, `goals-archive.json` or `suggestions.json`, or a stale `goals.md`, blocks the commit), and a PreToolUse hook in the repo's `.claude/settings.json` that stops agents from editing `goals.json`, `goals.md`, `goals-archive.json` and `suggestions.json` by hand.
 
 Outside the projects: `~/.upgo/registry.json` (which projects exist; `UPGO_REGISTRY` overrides the path, tests use it). An older `registry.json` in the upgo folder is copied there once.
 

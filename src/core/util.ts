@@ -8,6 +8,9 @@ export class UpgoError extends Error {
     }
 }
 
+// The message carries the details as a list too, so take its first line.
+export const oneLine = (e: UpgoError) => [e.message.split("\n")[0], e.details.join("; ")].filter(Boolean).join(" ")
+
 export function today(now = new Date()): string {
     const p = (n: number) => String(n).padStart(2, "0")
     return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`

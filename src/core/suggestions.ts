@@ -4,7 +4,7 @@ import { EM_DASH } from "./rules.ts"
 import { formatIssues, isOpenStatus, suggestionsFileSchema, type GoalsFile, type Status, type Suggestion } from "./schema.ts"
 import { repeats } from "./similar.ts"
 import { withLock, writeAtomic } from "./store.ts"
-import { slugify, uniqueSlug, UpgoError } from "./util.ts"
+import { oneLine, slugify, uniqueSlug, UpgoError } from "./util.ts"
 
 export const SUGGESTIONS = "suggestions.json"
 
@@ -33,8 +33,7 @@ export function trySuggestions(dir: string): { suggestions: Suggestion[]; sugges
         return { suggestions: readSuggestions(dir) }
     } catch (e) {
         if (!(e instanceof UpgoError)) throw e
-        // One line: the message carries the details as a list too.
-        return { suggestions: [], suggestionsError: [e.message.split("\n")[0], e.details.join("; ")].filter(Boolean).join(" ") }
+        return { suggestions: [], suggestionsError: oneLine(e) }
     }
 }
 

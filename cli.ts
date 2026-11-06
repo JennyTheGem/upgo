@@ -5,6 +5,7 @@ import { existsSync, readFileSync, realpathSync } from "node:fs"
 import fsp from "node:fs/promises"
 import { basename, dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
+import { ARCHIVE, archiveDone, DEFAULT_ARCHIVE_MONTHS, monthsBefore, readArchive } from "./src/core/archive.ts"
 import { checkProject, refChecker } from "./src/core/check.ts"
 import * as m from "./src/core/mutate.ts"
 import { checkRegistrable, findEntry, forget, readRegistry, register } from "./src/core/registry.ts"
@@ -32,7 +33,8 @@ const HELP = `upgo: structured goals for this project. Never edit goals.json or 
 
 Reading
   upgo list [--phase now,next] [--status done] [--all] [--section N] [--search text]
-  upgo show <id | project:id>
+  upgo show <id | project:id>         also finds archived items
+  upgo next                           the first now item (else first next) in full, to pick up work
   upgo projects                       registered projects with open counts
 
 Writing (each command validates and regenerates goals.md)
@@ -46,6 +48,7 @@ Writing (each command validates and regenerates goals.md)
   upgo section list | add "<title>" [--n N] | rename N "<title>" | move N [--before M] | delete N
   upgo trap list | add "<title>" [--body text] [--id slug] | edit <id> [--title t] [--body text] | delete <id>
   upgo purpose ["<text>" | --clear]
+  upgo archive [--months ${DEFAULT_ARCHIVE_MONTHS}]           move done items not updated for N months to ${ARCHIVE}
   upgo suggestion context              sections, every goal title, dropped reasons and pending ideas; skim it before suggesting
   upgo suggestion list | add "<title>" [--body text] [--section N] [--size S|M|L] [--related project:id,...] [--force] | delete <id...>
            ideas for the user, only when asked; add refuses one that repeats a goal or suggestion unless --force
@@ -55,7 +58,7 @@ Writing (each command validates and regenerates goals.md)
 
 Setup and checks
   upgo init [--id slug] [--purpose text] [--no-hooks]   register this folder, install git + Claude hooks
-  upgo check [--all]                  validate (schema, rules, related, detail files, suggestions.json, goals.md in sync)
+  upgo check [--all]                  validate (schema, rules, related, detail files, suggestions.json, ${ARCHIVE}, goals.md in sync)
   upgo render                         rewrite goals.md from goals.json
   upgo import <goals.md> [--completed path] [--out file] [--id slug] [--force]
   upgo forget <id>                    drop a project from the registry
@@ -277,7 +280,7 @@ async function hook(io: Io): Promise<number> {
     const name = basename(path).toLowerCase()
     const goals = join(dirname(path), GOALS)
     // Managed means upgo wrote that goals.json; another tool's file of the same name is not ours to guard.
-    if ((name === GOALS || name === MD || name === SUGGESTIONS) && existsSync(goals) && isManaged(readFileSync(goals, "utf8"))) {
+    if ((name === GOALS || name === MD || name === SUGGESTIONS || name === ARCHIVE) && existsSync(goals) && isManaged(readFileSync(goals, "utf8"))) {
         io.err(`${name} is managed by upgo and must not be edited directly. Use the CLI: \`upgo add|edit|done|drop|move|suggestion ...\` (\`upgo help\`).\n`)
         return 2
     }
@@ -343,12 +346,34 @@ async function run(argv: string[], io: Io): Promise<number> {
             const { values, positionals } = parse(rest, TARGET)
             const target = need(positionals[0], "item id")
             const [project, id] = target.includes(":") ? target.split(":") : [undefined, target]
-            const file = readGoals(projectDir(project ? { project } : values))
+            const dir = projectDir(project ? { project } : values)
+            const file = readGoals(dir)
             const item = file.items.find((i) => i.id === id)
             const trap = file.traps.find((t) => t.id === id)
+            const archived = item || trap ? undefined : readArchive(dir).findLast((i) => i.id === id)
             if (item) io.out(itemText(item, file))
             else if (trap) io.out(`trap \`${trap.id}\` ${trap.title}\n${trap.body ? `\n${trap.body.trim()}\n` : ""}`)
+            else if (archived) io.out(`archived in ${ARCHIVE}\n${itemText(archived, file)}`)
             else throw new UpgoError(`no item \`${id}\` in ${file.project}`)
+            return 0
+        }
+
+        case "next": {
+            const { values } = parse(rest, TARGET)
+            const file = readGoals(projectDir(values))
+            // goals.md order: sections as listed, then items within each.
+            const rank = (i: Item) => file.sections.findIndex((s) => s.n === i.section)
+            const open = file.items.filter(isOpen).sort((a, b) => rank(a) - rank(b))
+            const item = open.find((i) => i.phase === "now") ?? open.find((i) => i.phase === "next")
+            io.out(item ? itemText(item, file) : "nothing in now or next (see `upgo list`)\n")
+            return 0
+        }
+
+        case "archive": {
+            const { values } = parse(rest, { ...TARGET, months: { type: "string" } })
+            const months = int("months", values.months) ?? DEFAULT_ARCHIVE_MONTHS
+            const moved = await archiveDone(projectDir(values), monthsBefore(day, months))
+            io.out(moved.length ? `archived ${moved.length}: ${moved.map((i) => i.id).join(", ")}\n` : `no done items older than ${months} months\n`)
             return 0
         }
 
@@ -528,7 +553,7 @@ async function run(argv: string[], io: Io): Promise<number> {
                 const file = readGoals(dir)
                 if (section !== undefined) m.requireSection(file, section)
                 if (related?.length) {
-                    const bad = related.map(refChecker(file)).filter((p) => p !== null)
+                    const bad = related.map(refChecker(file, dir)).filter((p) => p !== null)
                     if (bad.length) throw new UpgoError("bad --related:", bad)
                 }
                 return file
@@ -590,7 +615,9 @@ async function run(argv: string[], io: Io): Promise<number> {
                 io.out(contextText(readGoals(dir), readSuggestions(dir)))
             } else if (sub === "add") {
                 const title = need(positionals[0], "suggestion title")
-                const file = checkedGoals()
+                const goals = checkedGoals()
+                // Archived done work counts too, or it gets suggested again.
+                const file = { ...goals, items: [...goals.items, ...readArchive(dir)] }
                 let id = ""
                 await updateSuggestions(dir, (list) => {
                     const dupes = values.force ? [] : duplicatesOf(title, file, list)

@@ -275,6 +275,39 @@
       "note": "not worth"
     },
     {
+      "id": "dashboard-counts-archived-done-items",
+      "section": 2,
+      "title": "Dashboard counts archived done items",
+      "body": "After upgo archive, project %, done counts and section bars only count goals.json, so a mostly done project drops toward 0%. Server should send archive counts and summarize/percentDone include them.",
+      "phase": "next",
+      "status": "planned",
+      "size": "M",
+      "pointers": {
+        "files": [
+          "web/src/goals/filters.ts",
+          "server.ts"
+        ]
+      },
+      "created": "2026-11-07",
+      "updated": "2026-11-07"
+    },
+    {
+      "id": "related-chip-to-an-archived-item",
+      "section": 2,
+      "title": "Related chip to an archived item",
+      "body": "A related chip pointing at an archived item toasts 'No item X in Y'. Show it as archived instead.",
+      "phase": "later",
+      "status": "planned",
+      "size": "S",
+      "pointers": {
+        "files": [
+          "web/src/goals/ProjectView.tsx"
+        ]
+      },
+      "created": "2026-11-07",
+      "updated": "2026-11-07"
+    },
+    {
       "id": "migrate-rest",
       "section": 3,
       "title": "Migrate remaining repos to upgo",
@@ -645,6 +678,133 @@
       "created": "2026-11-06",
       "updated": "2026-11-06",
       "note": "not worth"
+    },
+    {
+      "id": "upgo-next",
+      "section": 1,
+      "title": "upgo next",
+      "body": "Print the top now item (or first next) in full so an agent can pick up work with one command.",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-07",
+      "updated": "2026-11-07",
+      "note": "upgo next prints the first open now item (else next) in display order, in full"
+    },
+    {
+      "id": "per-item-change-history",
+      "section": 1,
+      "title": "Per-item change history",
+      "body": "Record created, phase moves, done and reopen with dates so you can see how an item travelled.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "M",
+      "created": "2026-11-07",
+      "updated": "2026-11-07",
+      "note": "Not worth it"
+    },
+    {
+      "id": "close-goals-from-commit-messages",
+      "section": 1,
+      "title": "Close goals from commit messages",
+      "body": "A commit-msg hook that runs upgo done when the message says closes <id>, so agents never forget to finish an item.",
+      "phase": "maybe",
+      "status": "planned",
+      "size": "M",
+      "created": "2026-11-07",
+      "updated": "2026-11-07"
+    },
+    {
+      "id": "upgo-stale",
+      "section": 1,
+      "title": "upgo stale",
+      "body": "List now and next items untouched for N days, the ones that quietly rot.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "S",
+      "created": "2026-11-07",
+      "updated": "2026-11-07",
+      "note": "Not worth it"
+    },
+    {
+      "id": "upgo-now-across-all-projects",
+      "section": 1,
+      "title": "upgo now across all projects",
+      "body": "One command that prints every registered project's now items, for a terminal glance without the dashboard.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "S",
+      "created": "2026-11-07",
+      "updated": "2026-11-07",
+      "note": "Not worth it"
+    },
+    {
+      "id": "upgo-undo",
+      "section": 1,
+      "title": "upgo undo",
+      "body": "Keep the previous goals.json on every write and restore it with one command after a bad agent edit.",
+      "phase": "later",
+      "status": "dropped",
+      "size": "M",
+      "created": "2026-11-07",
+      "updated": "2026-11-07",
+      "note": "Not worth it"
+    },
+    {
+      "id": "upgo-check-fix",
+      "section": 1,
+      "title": "upgo check --fix",
+      "body": "Auto-fix the safe problems (goals.md out of sync, missing dates) instead of just reporting them.",
+      "phase": "later",
+      "status": "planned",
+      "size": "S",
+      "created": "2026-11-07",
+      "updated": "2026-11-07"
+    },
+    {
+      "id": "archive-old-done-items",
+      "section": 1,
+      "title": "Archive old done items",
+      "body": "Move done items older than N months to goals-archive.json so goals.json stays small and fast for agents.",
+      "phase": "later",
+      "status": "done",
+      "size": "M",
+      "created": "2026-11-07",
+      "updated": "2026-11-07",
+      "note": "upgo archive [--months 6] moves old done items to goals-archive.json; refs, show, check, hook and suggestion dupes still see them"
+    },
+    {
+      "id": "fuzzy-id-matching",
+      "section": 1,
+      "title": "Fuzzy id matching",
+      "body": "Accept a unique prefix or near id in show, done and edit, and suggest the closest id on a typo.",
+      "phase": "later",
+      "status": "planned",
+      "size": "S",
+      "created": "2026-11-07",
+      "updated": "2026-11-07"
+    },
+    {
+      "id": "mcp-server-for-upgo",
+      "section": 1,
+      "title": "MCP server for upgo",
+      "body": "Expose list, show, add and done as MCP tools so agents call upgo natively instead of shelling out.",
+      "phase": "maybe",
+      "status": "planned",
+      "size": "M",
+      "created": "2026-11-07",
+      "updated": "2026-11-07"
+    },
+    {
+      "id": "shell-completions-for-ids-and-sections",
+      "section": 1,
+      "title": "Shell completions for ids and sections",
+      "body": "Tab-complete commands, item ids and section numbers in PowerShell and bash.",
+      "phase": "maybe",
+      "status": "planned",
+      "size": "M",
+      "created": "2026-11-07",
+      "updated": "2026-11-07"
     }
   ]
 }
