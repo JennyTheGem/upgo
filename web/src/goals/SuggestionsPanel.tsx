@@ -28,7 +28,6 @@ const toggled = (set: Set<string>, id: string) => {
 
 // Agents add these with `upgo suggestion add`. Rows look and act like goal rows.
 export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt, onDismiss, onDrop, sections }: Props) {
-    const sectionTitle = (n: number) => sections.find((x) => x.n === n)?.title
     const [ticked, setTicked] = useState<Set<string>>(new Set())
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
     const chosen = suggestions.filter((s) => ticked.has(s.id))
@@ -60,73 +59,81 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
         ],
     ]
 
+    const row = (s: Suggestion) => {
+        const open = expanded.has(s.id)
+        return (
+            <li
+                key={s.id}
+                className={`itemRow suggestionRow ${open ? "itemRow--open" : ""} ${ticked.has(s.id) ? "itemRow--selected" : ""}`}
+                data-suggestion-id={s.id}
+            >
+                <div className="itemRowHead">
+                    <input type="checkbox" className="itemCheck" checked={ticked.has(s.id)} aria-label={`Select ${s.title}`} onChange={() => setTicked((t) => toggled(t, s.id))} />
+                    <button type="button" className="itemRowToggle" aria-expanded={open} onClick={() => setExpanded((x) => toggled(x, s.id))}>
+                        <span className="itemTitle font-bold truncate">{s.title}</span>
+                        <span className="itemId Inconsolata caption-small truncate">{s.id}</span>
+                    </button>
+                    {s.size && (
+                        <span className="itemChips">
+                            <Chip mono tone="orange" title="Size">
+                                {s.size}
+                            </Chip>
+                        </span>
+                    )}
+                    {actions(s).map((group, i) => (
+                        <span key={i} className="suggestionActions">
+                            {group.map((a) => (
+                                <Button
+                                    key={a.label}
+                                    variant="icon"
+                                    className="itemMore"
+                                    imgProps={{ img: a.icon, color: a.color }}
+                                    aria-label={`${a.label}: ${s.title}`}
+                                    title={a.needsSection && !canAdopt ? adoptTitle : a.hint}
+                                    disabled={a.needsSection && !canAdopt}
+                                    onClick={a.run}
+                                />
+                            ))}
+                        </span>
+                    ))}
+                </div>
+                {open && (
+                    <div className="itemDetail">
+                        {s.body ? <Markdown className="itemBody" text={s.body} /> : <span className="caption op-50">No details.</span>}
+                        <span className="itemMeta caption-small op-50">suggested {s.created}</span>
+                    </div>
+                )}
+            </li>
+        )
+    }
+
+    // Grouped like the goals screen, in section order; no or unknown section goes last.
+    const groups: { section?: Section; list: Suggestion[] }[] = sections.map((section) => ({ section, list: suggestions.filter((s) => s.section === section.n) }))
+    groups.push({ list: suggestions.filter((s) => !sections.some((x) => x.n === s.section)) })
+
     return (
         <>
-            <section className="uiContentContainer sectionBlock" aria-label="Suggestions">
-                <header className="sectionHeader">
-                    <span className="sectionTape">
-                        <h2 className="sectionTitle truncate">Suggestions</h2>
-                    </span>
-                    <span className="caption-small tabular op-70 no-wrap">{suggestions.length} open</span>
-                </header>
+            <div className="suggestionGroups" role="region" aria-label="Suggestions">
                 <p className="suggestionHint caption-small op-70">Drop keeps it as a dropped goal so agents never suggest it again. Delete just removes it.</p>
-                <ul className="itemList">
-                    {suggestions.map((s) => {
-                        const open = expanded.has(s.id)
-                        return (
-                            <li
-                                key={s.id}
-                                className={`itemRow suggestionRow ${open ? "itemRow--open" : ""} ${ticked.has(s.id) ? "itemRow--selected" : ""}`}
-                                data-suggestion-id={s.id}
-                            >
-                                <div className="itemRowHead">
-                                    <input type="checkbox" className="itemCheck" checked={ticked.has(s.id)} aria-label={`Select ${s.title}`} onChange={() => setTicked((t) => toggled(t, s.id))} />
-                                    <button type="button" className="itemRowToggle" aria-expanded={open} onClick={() => setExpanded((x) => toggled(x, s.id))}>
-                                        <span className="itemTitle font-bold truncate">{s.title}</span>
-                                        <span className="itemId Inconsolata caption-small truncate">{s.id}</span>
-                                    </button>
-                                    {(s.section !== undefined || s.size) && (
-                                        <span className="itemChips">
-                                            {s.section !== undefined && (
-                                                <Chip mono tone="muted" title={`Section: ${sectionTitle(s.section) ?? "no longer exists"}`}>
-                                                    §{s.section}
-                                                </Chip>
-                                            )}
-                                            {s.size && (
-                                                <Chip mono tone="orange" title="Size">
-                                                    {s.size}
-                                                </Chip>
-                                            )}
-                                        </span>
-                                    )}
-                                    {actions(s).map((group, i) => (
-                                        <span key={i} className="suggestionActions">
-                                            {group.map((a) => (
-                                                <Button
-                                                    key={a.label}
-                                                    variant="icon"
-                                                    className="itemMore"
-                                                    imgProps={{ img: a.icon, color: a.color }}
-                                                    aria-label={`${a.label}: ${s.title}`}
-                                                    title={a.needsSection && !canAdopt ? adoptTitle : a.hint}
-                                                    disabled={a.needsSection && !canAdopt}
-                                                    onClick={a.run}
-                                                />
-                                            ))}
-                                        </span>
-                                    ))}
-                                </div>
-                                {open && (
-                                    <div className="itemDetail">
-                                        {s.body ? <Markdown className="itemBody" text={s.body} /> : <span className="caption op-50">No details.</span>}
-                                        <span className="itemMeta caption-small op-50">suggested {s.created}</span>
-                                    </div>
-                                )}
-                            </li>
-                        )
-                    })}
-                </ul>
-            </section>
+                {groups
+                    .filter((g) => g.list.length)
+                    .map(({ section, list }) => (
+                        <section
+                            key={section?.n ?? "none"}
+                            className="uiContentContainer sectionBlock"
+                            aria-label={section ? `Section ${section.n}: ${section.title}` : "No section"}
+                        >
+                            <header className="sectionHeader">
+                                <span className="sectionTape">
+                                    {section && <span className="sectionNumber tabular">§{section.n}</span>}
+                                    <h2 className="sectionTitle truncate">{section?.title ?? "No section"}</h2>
+                                </span>
+                                <span className="caption-small tabular op-70 no-wrap">{list.length} open</span>
+                            </header>
+                            <ul className="itemList">{list.map(row)}</ul>
+                        </section>
+                    ))}
+            </div>
 
             {chosen.length > 0 && (
                 <SelectionBar count={chosen.length} onExit={() => setTicked(new Set())}>

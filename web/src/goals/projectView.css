@@ -87,9 +87,15 @@
     }
 }
 
+.suggestionGroups {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+}
+
 .suggestionHint {
     margin: 0;
-    padding: 0 var(--padding-xs) var(--padding-xs);
+    padding: 0 var(--padding-xs);
 }
 
 .suggestionActions {

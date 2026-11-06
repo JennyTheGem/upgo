@@ -109,7 +109,8 @@ describe("suggestions tab", () => {
     it("adds one suggestion to goals from its row button", async () => {
         const { user, server } = await setup(withSuggestions())
         const panel = await openTab(user)
-        expect(within(panel).getByTitle("Section: Library")).toHaveTextContent("§2")
+        expect(within(panel).getByRole("region", { name: "Section 2: Library" })).toHaveTextContent("Offline cache")
+        expect(within(panel).getByRole("region", { name: "No section" })).toHaveTextContent("Dark mode")
         await user.click(within(panel).getByRole("button", { name: "Add to goals: Offline cache" }))
         const dialog = await screen.findByRole("dialog", { name: "Add item" })
         expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveValue("Offline cache")
