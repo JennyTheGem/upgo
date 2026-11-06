@@ -53,6 +53,9 @@ export const suggestionSchema = z.strictObject({
     id: slug,
     title: line(200),
     body: z.string().optional(),
+    // Hints for when it becomes a goal; the section may be gone by then.
+    section: z.number().int().nonnegative().optional(),
+    size: z.enum(SIZES).optional(),
     created: date,
 })
 

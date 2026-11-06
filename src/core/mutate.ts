@@ -16,7 +16,7 @@ function indexOf(f: GoalsFile, id: string): number {
     return i
 }
 
-function requireSection(f: GoalsFile, n: number): void {
+export function requireSection(f: GoalsFile, n: number): void {
     if (!f.sections.some((s) => s.n === n)) throw new UpgoError(`no section ${n} in ${f.project} (add it with \`upgo section add\`)`)
 }
 

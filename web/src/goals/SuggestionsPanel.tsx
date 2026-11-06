@@ -1,8 +1,7 @@
 import { useState } from "react"
-import type { Suggestion } from "../../../src/core/schema.ts"
+import type { Section, Suggestion } from "../../../src/core/schema.ts"
 import Button from "../primitives/button/Button.tsx"
-import Dropdown, { type DropdownEntry } from "../primitives/dropdown/dropdown.tsx"
-import { useDropdownTrigger } from "../primitives/dropdown/useDropdownTrigger.ts"
+import Chip from "../primitives/chip/Chip.tsx"
 import EmptyState from "../primitives/emptyState/EmptyState.tsx"
 import ErrorState from "../primitives/errorState/ErrorState.tsx"
 import SelectionBar from "../primitives/selectionBar/SelectionBar.tsx"
@@ -15,7 +14,11 @@ type Props = {
     canAdopt: boolean
     onAdopt: (list: Suggestion[]) => void
     onDismiss: (ids: string[]) => Promise<boolean>
+    onDrop: (list: Suggestion[]) => Promise<boolean>
+    sections: Section[]
 }
+
+type Action = { label: string; hint: string; icon: string; color?: string; needsSection?: boolean; run: () => void }
 
 const toggled = (set: Set<string>, id: string) => {
     const next = new Set(set)
@@ -24,10 +27,10 @@ const toggled = (set: Set<string>, id: string) => {
 }
 
 // Agents add these with `upgo suggestion add`. Rows look and act like goal rows.
-export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt, onDismiss }: Props) {
+export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt, onDismiss, onDrop, sections }: Props) {
+    const sectionTitle = (n: number) => sections.find((x) => x.n === n)?.title
     const [ticked, setTicked] = useState<Set<string>>(new Set())
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
-    const menu = useDropdownTrigger()
     const chosen = suggestions.filter((s) => ticked.has(s.id))
     const adoptTitle = canAdopt ? undefined : "Add a section first"
 
@@ -45,11 +48,16 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
         )
     }
 
-    const entries = (s: Suggestion): DropdownEntry[] => [
-        { type: "item", id: "adopt", label: "Add to goals", icon: "iconify:add", disabled: !canAdopt, onSelect: () => onAdopt([s]) },
-        { type: "item", id: "copy", label: "Copy for agent", icon: "iconify:content-copy", onSelect: () => copyForAgent([s]) },
-        { type: "divider", id: "d" },
-        { type: "item", id: "dismiss", label: "Dismiss", icon: "iconify:delete", variant: "danger", onSelect: () => onDismiss([s.id]) },
+    // Two groups: keep it, then get rid of it.
+    const actions = (s: Suggestion): Action[][] => [
+        [
+            { label: "Add to goals", hint: "Add to goals", icon: "iconify:add", needsSection: true, run: () => onAdopt([s]) },
+            { label: "Copy", hint: "Copy for agent", icon: "iconify:content-copy", run: () => copyForAgent([s]) },
+        ],
+        [
+            { label: "Drop", hint: "Drop: never suggest again", icon: "iconify:block", color: "var(--tone-orange)", needsSection: true, run: () => onDrop([s]) },
+            { label: "Delete", hint: "Delete: remove, may come back", icon: "iconify:delete", color: "var(--color-danger)", run: () => onDismiss([s.id]) },
+        ],
     ]
 
     return (
@@ -61,6 +69,7 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
                     </span>
                     <span className="caption-small tabular op-70 no-wrap">{suggestions.length} open</span>
                 </header>
+                <p className="suggestionHint caption-small op-70">Drop keeps it as a dropped goal so agents never suggest it again. Delete just removes it.</p>
                 <ul className="itemList">
                     {suggestions.map((s) => {
                         const open = expanded.has(s.id)
@@ -69,7 +78,6 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
                                 key={s.id}
                                 className={`itemRow suggestionRow ${open ? "itemRow--open" : ""} ${ticked.has(s.id) ? "itemRow--selected" : ""}`}
                                 data-suggestion-id={s.id}
-                                onContextMenu={(e) => menu.openFromEvent(e, entries(s))}
                             >
                                 <div className="itemRowHead">
                                     <input type="checkbox" className="itemCheck" checked={ticked.has(s.id)} aria-label={`Select ${s.title}`} onChange={() => setTicked((t) => toggled(t, s.id))} />
@@ -77,25 +85,36 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
                                         <span className="itemTitle font-bold truncate">{s.title}</span>
                                         <span className="itemId Inconsolata caption-small truncate">{s.id}</span>
                                     </button>
-                                    <Button
-                                        variant="secondary"
-                                        className="suggestionAdopt"
-                                        imgProps={{ img: "iconify:add" }}
-                                        aria-label={`Add to goals: ${s.title}`}
-                                        title={adoptTitle}
-                                        disabled={!canAdopt}
-                                        onClick={() => onAdopt([s])}
-                                    >
-                                        <span className="suggestionAdoptLabel">Add to goals</span>
-                                    </Button>
-                                    <Button
-                                        variant="icon"
-                                        className="itemMore"
-                                        imgProps={{ img: "iconify:more-vert" }}
-                                        aria-label={`Actions for ${s.title}`}
-                                        title="Actions"
-                                        onClick={(e) => menu.openFromElement(e.currentTarget, entries(s))}
-                                    />
+                                    {(s.section !== undefined || s.size) && (
+                                        <span className="itemChips">
+                                            {s.section !== undefined && (
+                                                <Chip mono tone="muted" title={`Section: ${sectionTitle(s.section) ?? "no longer exists"}`}>
+                                                    §{s.section}
+                                                </Chip>
+                                            )}
+                                            {s.size && (
+                                                <Chip mono tone="orange" title="Size">
+                                                    {s.size}
+                                                </Chip>
+                                            )}
+                                        </span>
+                                    )}
+                                    {actions(s).map((group, i) => (
+                                        <span key={i} className="suggestionActions">
+                                            {group.map((a) => (
+                                                <Button
+                                                    key={a.label}
+                                                    variant="icon"
+                                                    className="itemMore"
+                                                    imgProps={{ img: a.icon, color: a.color }}
+                                                    aria-label={`${a.label}: ${s.title}`}
+                                                    title={a.needsSection && !canAdopt ? adoptTitle : a.hint}
+                                                    disabled={a.needsSection && !canAdopt}
+                                                    onClick={a.run}
+                                                />
+                                            ))}
+                                        </span>
+                                    ))}
                                 </div>
                                 {open && (
                                     <div className="itemDetail">
@@ -128,17 +147,26 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
                     </Button>
                     <Button
                         variant="secondary"
+                        imgProps={{ img: "iconify:block" }}
+                        disabled={!canAdopt}
+                        title={adoptTitle}
+                        onClick={async () => {
+                            if (await onDrop(chosen)) setTicked(new Set())
+                        }}
+                    >
+                        Drop
+                    </Button>
+                    <Button
+                        variant="secondary"
                         imgProps={{ img: "iconify:delete" }}
                         onClick={async () => {
                             if (await onDismiss(chosen.map((s) => s.id))) setTicked(new Set())
                         }}
                     >
-                        Dismiss
+                        Delete
                     </Button>
                 </SelectionBar>
             )}
-
-            <Dropdown open={menu.open} anchor={menu.anchor} items={menu.items} onClose={menu.close} />
         </>
     )
 }

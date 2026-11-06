@@ -5,13 +5,13 @@ import "./button.css"
 export type Varient = "primary" | "secondary" | "destructive" | "icon" | "textHyperLink" | "switcherOption"
 
 type ButtonProps = {
-    imgProps?: { img: string; side?: "left" | "right"; className?: string }
+    imgProps?: { img: string; side?: "left" | "right"; className?: string; color?: string }
     children?: ReactNode
     variant?: Varient
 } & ComponentProps<"button">
 
 export default function Button({ variant = "primary", imgProps, children, className, type = "button", ...buttonProps }: ButtonProps) {
-    const imgEl = imgProps && <Icon name={imgProps.img} className={imgProps.className ?? ""} />
+    const imgEl = imgProps && <Icon name={imgProps.img} color={imgProps.color} className={imgProps.className ?? ""} />
     return (
         <button type={type} className={`${getVeriantStyles(variant)} outfit size-1 font-bold defaultButton ${className ?? ""}`} {...buttonProps}>
             {imgProps && imgProps.side !== "right" && imgEl}

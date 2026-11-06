@@ -195,6 +195,25 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
         },
     }
 
+    // Saved as dropped goals (in their hinted section, else the first), so agents see the reason and don't suggest them again.
+    const dropSuggestions = async (list: Suggestion[]) => {
+        const reason = await promptText({
+            title: list.length > 1 ? `Drop ${list.length} suggestions` : `Drop "${list[0].title}"`,
+            description: "They are saved as dropped goals with this reason, so nobody suggests them again.",
+            placeholder: "Reason",
+            confirmLabel: "Drop",
+        })
+        if (!reason) return false
+        const done: string[] = []
+        for (const s of list) {
+            const section = file.sections.some((x) => x.n === s.section) ? s.section! : file.sections[0].n
+            const item = { section, title: s.title, phase: "later" as const, status: "dropped" as const, note: reason, ...(s.body ? { body: s.body } : {}), ...(s.size && { size: s.size }) }
+            if (!(await run({ op: "add", item }))) break
+            done.push(s.id)
+        }
+        return done.length > 0 && (await dismiss(done)) && done.length === list.length
+    }
+
     const addSection = async () => {
         const title = await promptText({ title: "New section", placeholder: "Section title", confirmLabel: "Add section" })
         if (title) run({ op: "addSection", title })
@@ -289,7 +308,15 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
 
             <div className="projectTabPanel" id="project-tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
                 {tab === "suggestions" ? (
-                    <SuggestionsPanel suggestions={data.suggestions} error={data.suggestionsError} canAdopt={file.sections.length > 0} onAdopt={setAdopting} onDismiss={dismiss} />
+                    <SuggestionsPanel
+                        suggestions={data.suggestions}
+                        error={data.suggestionsError}
+                        canAdopt={file.sections.length > 0}
+                        onAdopt={setAdopting}
+                        onDismiss={dismiss}
+                        onDrop={dropSuggestions}
+                        sections={file.sections}
+                    />
                 ) : (
                     <>
                         {file.traps.length > 0 && <TrapsPanel traps={file.traps} />}

@@ -395,6 +395,39 @@
       "created": "2026-11-03",
       "updated": "2026-11-04",
       "note": "Server returns goals plus suggestionsError shown in the Suggestions panel; upgo check reports a broken suggestions.json"
+    },
+    {
+      "id": "suggestions-carry-section-and-size",
+      "section": 1,
+      "title": "Suggestions carry section and size",
+      "body": "Agents set the section and size they would pick; promote and the dashboard reuse them.",
+      "phase": "now",
+      "status": "done",
+      "size": "S",
+      "pointers": {
+        "files": [
+          "src/core/suggestions.ts"
+        ]
+      },
+      "created": "2026-11-06",
+      "updated": "2026-11-06",
+      "note": "suggestion add --section/--size, list shows hints, promote defaults to them, dashboard chips + prefilled Add item, Drop saves a dropped goal"
+    },
+    {
+      "id": "upgo-suggestion-edit",
+      "section": 1,
+      "title": "upgo suggestion edit",
+      "body": "`upgo suggestion edit <id> [--title t] [--body text] [--section N] [--size S|M|L]`, so agents can fix a suggestion without deleting and re-adding it.",
+      "phase": "next",
+      "status": "planned",
+      "size": "S",
+      "pointers": {
+        "files": [
+          "cli.ts,src/core/suggestions.ts"
+        ]
+      },
+      "created": "2026-11-06",
+      "updated": "2026-11-06"
     }
   ]
 }

@@ -14,7 +14,7 @@ function withSuggestions() {
     const initial = projects()
     initial.alpha.suggestions = [
         { id: "dark-mode", title: "Dark mode", body: "Users asked twice.", created: DAY },
-        { id: "offline", title: "Offline cache", created: DAY },
+        { id: "offline", title: "Offline cache", section: 2, size: "M", created: DAY },
     ]
     return initial
 }
@@ -77,27 +77,45 @@ describe("suggestions tab", () => {
         expect(tick("Dark mode")).toBeInTheDocument()
     })
 
-    it("dismisses from the row menu and from the bar", async () => {
+    it("deletes from the row button and from the bar", async () => {
         const { user, server } = await setup(withSuggestions())
         const panel = await openTab(user)
-        await user.click(within(panel).getByRole("button", { name: "Actions for Offline cache" }))
-        await user.click(within(await screen.findByRole("menu")).getByRole("menuitem", { name: "Dismiss" }))
+        await user.click(within(panel).getByRole("button", { name: "Delete: Offline cache" }))
         await waitFor(() => expect(within(panel).queryByText("Offline cache")).toBeNull())
         await user.click(tick("Dark mode"))
-        await user.click(within(bar()).getByRole("button", { name: "Dismiss" }))
+        await user.click(within(bar()).getByRole("button", { name: "Delete" }))
         expect(await screen.findByText(/No suggestions/)).toBeInTheDocument()
         expect(server.ops).toEqual([{ dismiss: ["offline"] }, { dismiss: ["dark-mode"] }])
+    })
+
+    it("drops ticked suggestions as dropped goals with a reason", async () => {
+        const { user, server } = await setup(withSuggestions())
+        await openTab(user)
+        await user.click(tick("Dark mode"))
+        await user.click(tick("Offline cache"))
+        await user.click(within(bar()).getByRole("button", { name: "Drop" }))
+        const dialog = await screen.findByRole("dialog", { name: "Drop 2 suggestions" })
+        await user.type(within(dialog).getByRole("textbox"), "Out of scope")
+        await user.click(within(dialog).getByRole("button", { name: "Drop" }))
+        expect(await screen.findByText(/No suggestions/)).toBeInTheDocument()
+        const dropped = server.state.alpha.file!.items.filter((i) => i.title === "Dark mode" || i.title === "Offline cache")
+        expect(dropped.map((i) => [i.title, i.section, i.status, i.note])).toEqual([
+            ["Dark mode", 1, "dropped", "Out of scope"],
+            ["Offline cache", 2, "dropped", "Out of scope"],
+        ])
+        expect(dropped[0].body).toBe("Users asked twice.")
     })
 
     it("adds one suggestion to goals from its row button", async () => {
         const { user, server } = await setup(withSuggestions())
         const panel = await openTab(user)
+        expect(within(panel).getByTitle("Section: Library")).toHaveTextContent("§2")
         await user.click(within(panel).getByRole("button", { name: "Add to goals: Offline cache" }))
         const dialog = await screen.findByRole("dialog", { name: "Add item" })
         expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveValue("Offline cache")
         await user.click(within(dialog).getByRole("button", { name: "Add item" }))
         await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
-        expect(server.state.alpha.file!.items.some((i) => i.title === "Offline cache")).toBe(true)
+        expect(server.state.alpha.file!.items.find((i) => i.title === "Offline cache")).toMatchObject({ section: 2, size: "M" })
         await waitFor(() => expect(server.state.alpha.suggestions!.map((s) => s.id)).toEqual(["dark-mode"]))
     })
 

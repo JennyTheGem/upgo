@@ -6,4 +6,8 @@ Structured goals for every project: a validating CLI for agents, a slim generate
 
 Open work only. Full item: `upgo show <id>`. Any slice: `upgo list --phase later,wayLater,maybe`, `--status done,dropped`, `--section <n>`, `--search <text>`.
 
-Closed sections: §1 CLI and core · §2 Dashboard · §3 Rollout
+Closed sections: §2 Dashboard · §3 Rollout
+
+## 1. CLI and core
+
+- `upgo-suggestion-edit` upgo suggestion edit (next)

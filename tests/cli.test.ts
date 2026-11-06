@@ -338,6 +338,16 @@ describe("writing", () => {
         expect(ok(cli(["suggestion", "list"], { cwd }))).toBe("no suggestions\n")
     })
 
+    it("keeps section and size hints on a suggestion and uses them on promote", async () => {
+        const cwd = await registered()
+        fails(cli(["suggestion", "add", "Ghost", "--section", "99"], { cwd }), /no section 99/)
+        fails(cli(["suggestion", "add", "Big", "--size", "XL"], { cwd }), /--size must be one of/)
+        ok(cli(["suggestion", "add", "Offline", "--section", "1", "--size", "M"], { cwd }))
+        expect(ok(cli(["suggestion", "list"], { cwd }))).toBe("`offline` Offline (§1, M)\n")
+        ok(cli(["suggestion", "promote", "offline"], { cwd }))
+        expect(items(cwd).find((i) => i.id === "offline")).toMatchObject({ section: 1, size: "M", phase: "later" })
+    })
+
     it("targets another project with --dir and --project", async () => {
         const target = await registered()
         const nested = join(target, "deep", "er")

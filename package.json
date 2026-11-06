@@ -1,6 +1,6 @@
 {
   "name": "@uplift-beyond/upgo",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "license": "MIT",
   "type": "module",
   "description": "Structured goals for every project: a validating CLI for agents, a slim generated goals.md, and a local dashboard.",

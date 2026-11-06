@@ -36,8 +36,8 @@ Writing (each command validates and regenerates goals.md)
   upgo section list | add "<title>" [--n N] | rename N "<title>" | move N [--before M] | delete N
   upgo trap list | add "<title>" [--body text] [--id slug] | edit <id> [--title t] [--body text] | delete <id>
   upgo purpose ["<text>" | --clear]
-  upgo suggestion list | add "<title>" [--body text] | delete <id...>   ideas for the user, only when asked
-  upgo suggestion promote <id> --section N [--phase later]   turn a suggestion into a goal and remove it
+  upgo suggestion list | add "<title>" [--body text] [--section N] [--size S|M|L] | delete <id...>   ideas for the user, only when asked
+  upgo suggestion promote <id> [--section N] [--size S|M|L] [--phase later]   turn a suggestion into a goal and remove it (section and size default to its own)
 
 Setup and checks
   upgo init [--id slug] [--purpose text] [--no-hooks]   register this folder, install git + Claude hooks
@@ -493,17 +493,20 @@ async function run(argv: string[], io: Io): Promise<number> {
 
         case "suggestion": {
             const [sub, ...args] = rest
-            const { values, positionals } = parse(args, { ...TARGET, body: { type: "string" }, section: { type: "string" }, phase: { type: "string" } })
+            const { values, positionals } = parse(args, { ...TARGET, body: { type: "string" }, section: { type: "string" }, phase: { type: "string" }, size: { type: "string" } })
             const dir = projectDir(values)
+            const section = int("section", values.section)
+            const size = oneOf("size", values.size, SIZES)
             if (sub === "promote") {
                 const sid = need(positionals[0], "suggestion id")
-                const section = need(int("section", values.section), "--section")
                 const phase = oneOf("phase", values.phase, PHASES) ?? "later"
                 const s = readSuggestions(dir).find((x) => x.id === sid)
                 if (!s) throw new UpgoError(`no suggestion \`${sid}\``)
+                const into = need(section ?? s.section, "--section")
+                const sized = size ?? s.size
                 let added = ""
                 await updateGoals(dir, (file) => {
-                    const r = m.addItem(file, { title: s.title, section, phase, ...(s.body ? { body: s.body } : {}) }, day)
+                    const r = m.addItem(file, { title: s.title, section: into, phase, ...(s.body ? { body: s.body } : {}), ...(sized && { size: sized }) }, day)
                     added = r.id
                     return r.file
                 })
@@ -513,12 +516,16 @@ async function run(argv: string[], io: Io): Promise<number> {
             } else if (sub === "list") {
                 const list = readSuggestions(dir)
                 if (!list.length) io.out("no suggestions\n")
-                for (const s of list) io.out(`\`${s.id}\` ${s.title}\n`)
+                for (const s of list) {
+                    const hints = [s.section !== undefined && `§${s.section}`, s.size].filter(Boolean).join(", ")
+                    io.out(`\`${s.id}\` ${s.title}${hints ? ` (${hints})` : ""}\n`)
+                }
             } else if (sub === "add") {
                 const title = need(positionals[0], "suggestion title")
+                if (section !== undefined) m.requireSection(readGoals(dir), section)
                 let id = ""
                 await updateSuggestions(dir, (list) => {
-                    const r = addSuggestion(list, { title, body: values.body }, day)
+                    const r = addSuggestion(list, { title, body: values.body, section, size }, day)
                     id = r.id
                     return r.list
                 })

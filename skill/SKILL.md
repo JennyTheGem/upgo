@@ -10,12 +10,13 @@ Goals live in `goals.json`, managed by the `upgo` CLI. `goals.md` is generated f
 ## Rules
 
 - Never Edit, Write or sed `goals.json` or `goals.md`. A hook blocks it; the CLI validates every write and regenerates `goals.md`.
-- Before working on an item, read it in full: `upgo show <id>`.
+- Before working on an item, read it in full: `upgo show <id>` (`upgo show <project:id>` for another project, `upgo projects` lists them).
+- Section numbers for `--section N`: `upgo section list` (`upgo section add "<title>"` only when nothing fits).
 - Anything not in `goals.md`: `upgo list --phase later,wayLater,maybe`, `--status done,dropped`, `--section N`, `--search text`, `--all`.
-- Finished: `upgo done <id> --note "<one line on what shipped>"`. Half done: `upgo edit <id> --status partial`.
+- Finished: `upgo done <id> --note "<one line on what shipped>"`. Half done: `upgo edit <id> --status partial`. Back to open: `upgo reopen <id>`.
 - Found a new bug or gap: `upgo add "<title>" --section N --phase now|next|later --body "<why>" --files <path>` (also `--seam`, `--depends`, `--trap`, `--how`, `--check`, `--size S|M|L`, `--scope a,b`, `--detail docs/goalsDetails/x.md`).
 - Not doing it: `upgo drop <id> --reason "<why>"`, kept so nobody proposes it again. `upgo delete <id>` only for mistakes and duplicates.
-- Only when the user asks for suggestions or ideas: `upgo suggestion add "<title>" --body "<why>"` (one per idea). They land in `suggestions.json` and the dashboard's Suggestions panel, where the user copies them back to an agent or adds them to goals. `upgo suggestion list | delete <id...>`. When the user picks one to do: `upgo suggestion promote <id> --section N [--phase next]` adds it as a goal and removes the suggestion.
+- Only when the user asks for suggestions or ideas: first skim `upgo list --all` (dropped items carry the reason they were turned down, never re-suggest those), then `upgo suggestion add "<title>" --body "<why>" --section N --size S|M|L` (one per idea; always set the section and size you would pick, so the user does not have to). They land in `suggestions.json` and the dashboard's Suggestions tab, where the user adds them to goals, copies them back to an agent, drops them (saved as a dropped goal) or deletes them. `upgo suggestion list | delete <id...>`. When the user picks one to do: `upgo suggestion promote <id> [--section N] [--size S|M|L] [--phase next]` adds it as a goal (its own section and size unless overridden) and removes the suggestion.
 - Something every agent must know before touching an area: `upgo trap add "<title>" --body "<detail>"`.
 - Long-form detail for an open item stays in `docs/goalsDetails/*.md`, linked with `--detail`.
 - `upgo check` must pass; the git pre-commit hook runs it. Commit `goals.json` and `goals.md` together.

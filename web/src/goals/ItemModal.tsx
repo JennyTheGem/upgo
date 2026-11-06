@@ -1,7 +1,7 @@
 import "./itemModal.css"
 import { useState, type FormEvent } from "react"
 import { OPEN_STATUSES, PHASES, PHASE_LABEL, POINTER_KEYS, SIZES, isOpenStatus, type PointerKey } from "../../../src/core/vocab.ts"
-import type { GoalsFile, Item } from "../../../src/core/schema.ts"
+import type { GoalsFile, Item, Suggestion } from "../../../src/core/schema.ts"
 import type { Op } from "../../../src/core/ops.ts"
 import Button from "../primitives/button/Button.tsx"
 import Field from "../primitives/field/Field.tsx"
@@ -13,14 +13,18 @@ type Props = {
     item?: Item
     section?: number
     // Prefills a new item (a suggestion being added to goals).
-    draft?: { title: string; body?: string }
+    draft?: Pick<Suggestion, "title" | "body" | "section" | "size">
     onClose: () => void
     // Resolves true when the server took it; the modal stays open otherwise so nothing typed is lost.
     onSubmit: (op: Op) => Promise<boolean>
 }
 
 export default function ItemModal({ file, item, section, draft, onClose, onSubmit }: Props) {
-    const [form, setForm] = useState(() => ({ ...toForm(item, section ?? file.sections[0]?.n ?? 0), ...(draft && { title: draft.title, body: draft.body ?? "" }) }))
+    const [form, setForm] = useState<ItemForm>(() => {
+        const hinted = draft?.section !== undefined && file.sections.some((s) => s.n === draft.section) ? draft.section : undefined
+        const base = toForm(item, hinted ?? section ?? file.sections[0]?.n ?? 0)
+        return draft ? { ...base, title: draft.title, body: draft.body ?? "", size: draft.size ?? "" } : base
+    })
     const [busy, setBusy] = useState(false)
     const set = <K extends keyof ItemForm>(key: K, value: ItemForm[K]) => setForm((f) => ({ ...f, [key]: value }))
     const setPointer = (key: PointerKey, value: string) => setForm((f) => ({ ...f, pointers: { ...f.pointers, [key]: value } }))

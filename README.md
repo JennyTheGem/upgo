@@ -28,7 +28,7 @@ Then `upgo help`. The agent skill ships in the package: copy `$(npm root -g)/@up
 - **Reorder**: drag a row by its handle, also into another section; dropping on a section header puts it at the end. Keyboard: Alt+Up / Alt+Down.
 - **Sections**: **Add section** in the header; a section's ⋮ menu renames, moves, adds an item to it or deletes it (only when it holds no items at all). A section with no open items shows as closed.
 - **Copy for an agent**: tick items (shift-click for a range), press **Copy** in the bar at the bottom, paste into Claude. It gets `id: title` plus the body and reads the rest itself with `upgo show <id>`.
-- **Suggestions**: ask an agent for ideas and it adds them with `upgo suggestion add`. They show in the project's **Suggestions** tab (next to **Goals**), as rows like goal rows: click to expand, **Add to goals** on each row (opens a filled-in Add item form, saved ones disappear), ⋮ or right-click for copy and dismiss. Tick several for **Copy** (for an agent, they stay), **Add to goals** (one form after another) or **Dismiss** in the bottom bar.
+- **Suggestions**: ask an agent for ideas and it adds them with `upgo suggestion add`, with the section and size it would pick. They show in the project's **Suggestions** tab (next to **Goals**), as rows like goal rows: click to expand, section and size chips, and four buttons on each row: **Add to goals** (opens a filled-in Add item form, saved ones disappear), **Copy** (for an agent), **Drop** (saved as a dropped goal with your reason, so agents never suggest it again) and **Delete** (just removes it). Tick several for the same actions in the bottom bar.
 - **Live**: when an agent changes a `goals.json` or `suggestions.json`, the page updates by itself.
 
 ## Working with agents
@@ -61,8 +61,8 @@ upgo reopen <id>                               upgo delete <id>   (mistakes and 
 upgo move <id> --section 3 | --before <id> | --after <id> | --up | --down
 upgo section list | add "Title" | rename 3 "Title" | move 3 --before 1 | delete 3
 upgo trap list | add "Title" --body "..." | edit <id> | delete <id>
-upgo suggestion list | add "Title" --body "..." | delete <id...>
-upgo suggestion promote <id> --section 1 [--phase next]   add it as a goal, remove the suggestion
+upgo suggestion list | add "Title" --body "..." [--section 1] [--size M] | delete <id...>
+upgo suggestion promote <id> [--section 1] [--size M] [--phase next]   add it as a goal (its own section and size by default), remove the suggestion
 upgo check [--all]                             validate one or every project
 upgo render                                    rewrite goals.md from goals.json
 upgo ui [--port 4141] [--no-open]

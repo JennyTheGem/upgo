@@ -47,10 +47,16 @@ export async function updateSuggestions(dir: string, mutate: (list: Suggestion[]
     })
 }
 
-export function addSuggestion(list: Suggestion[], input: { title: string; body?: string }, day: string): { list: Suggestion[]; id: string } {
+export function addSuggestion(
+    list: Suggestion[],
+    input: { title: string; body?: string; section?: number; size?: Suggestion["size"] },
+    day: string,
+): { list: Suggestion[]; id: string } {
     if (JSON.stringify(input).includes(EM_DASH)) throw new UpgoError("a suggestion contains an em dash (U+2014); use a comma, colon or hyphen")
     const id = uniqueSlug(slugify(input.title), new Set(list.map((s) => s.id)))
-    return { list: [...list, { id, title: input.title, ...(input.body?.trim() ? { body: input.body } : {}), created: day }], id }
+    const { title, body, section, size } = input
+    const s: Suggestion = { id, title, ...(body?.trim() ? { body } : {}), ...(section !== undefined && { section }), ...(size && { size }), created: day }
+    return { list: [...list, s], id }
 }
 
 export function removeSuggestions(list: Suggestion[], ids: string[]): Suggestion[] {

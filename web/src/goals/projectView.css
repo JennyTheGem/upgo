@@ -87,15 +87,28 @@
     }
 }
 
-.suggestionAdopt {
-    flex-shrink: 0;
-    padding: var(--padding-2xs) var(--padding-sm);
-    font-size: var(--text-control);
+.suggestionHint {
+    margin: 0;
+    padding: 0 var(--padding-xs) var(--padding-xs);
 }
 
-@media (max-width: 767px) {
-    .suggestionAdoptLabel {
-        display: none;
+.suggestionActions {
+    display: flex;
+    flex-shrink: 0;
+    gap: var(--gap-xs);
+}
+
+/* Dividers: chips | keep (add, copy) | get rid of (drop, delete). */
+.suggestionActions + .suggestionActions {
+    padding-left: var(--gap-sm);
+    border-left: 1px solid var(--color-border-subtle);
+}
+
+/* Narrow screens move the chips to their own line, so no divider there. */
+@media (min-width: 768px) {
+    .suggestionRow .itemChips + .suggestionActions {
+        padding-left: var(--gap-sm);
+        border-left: 1px solid var(--color-border-subtle);
     }
 }
 
