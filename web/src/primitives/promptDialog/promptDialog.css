@@ -37,6 +37,13 @@
 
 .promptField:focus-within { border-color: var(--color-accent-solid); }
 
+.promptPresets {
+    flex: 1 1 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap-xs);
+}
+
 .promptInput {
     flex: 1;
     min-width: 0;

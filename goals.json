@@ -160,10 +160,11 @@
       "title": "Show the dropped reason on a near duplicate",
       "body": "When a suggestion looks like a dropped goal, show that goal and its reason right on the row.",
       "phase": "next",
-      "status": "planned",
+      "status": "done",
       "size": "M",
       "created": "2026-11-06",
-      "updated": "2026-11-06"
+      "updated": "2026-11-07",
+      "note": "Dropped before line on the row (goal chip that jumps to it, plus reason), same match rule as the CLI duplicate guard (src/core/similar.ts)"
     },
     {
       "id": "undo-for-dismiss-and-drop",
@@ -171,10 +172,11 @@
       "title": "Undo for dismiss and drop",
       "body": "Undo toast after Dismiss and Drop, like goal ops already have.",
       "phase": "next",
-      "status": "planned",
+      "status": "done",
       "size": "M",
       "created": "2026-11-06",
-      "updated": "2026-11-06"
+      "updated": "2026-11-07",
+      "note": "Undo toast after Delete, Drop and Shift+add; deletes the made goals and restores suggestions at their old index (POST suggestions {restore})"
     },
     {
       "id": "drop-reason-presets",
@@ -182,10 +184,11 @@
       "title": "Drop reason presets",
       "body": "Chips in the Drop prompt: Out of scope, Already done, Not worth it, Duplicate. Still allow free text.",
       "phase": "next",
-      "status": "planned",
+      "status": "done",
       "size": "S",
       "created": "2026-11-06",
-      "updated": "2026-11-06"
+      "updated": "2026-11-07",
+      "note": "Preset chips in the goal and suggestion Drop prompts fill the field, free text still works"
     },
     {
       "id": "one-click-adopt-with-defaults",
@@ -193,10 +196,11 @@
       "title": "One click adopt with defaults",
       "body": "Shift+click on Add to goals skips the modal and adds with the hinted section and phase `later`.",
       "phase": "next",
-      "status": "planned",
+      "status": "done",
       "size": "S",
       "created": "2026-11-06",
-      "updated": "2026-11-06"
+      "updated": "2026-11-07",
+      "note": "Shift+click Add to goals (row or bar) adds to Later in the hinted section; ones without a usable hint still open the form"
     },
     {
       "id": "keyboard-shortcuts-in-suggestions",

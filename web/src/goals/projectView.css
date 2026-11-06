@@ -98,6 +98,12 @@
     padding: 0 var(--padding-xs);
 }
 
+/* Always shown, above the expanded detail. */
+.itemDetail.suggestionTwin {
+    padding-top: 0;
+    padding-bottom: var(--padding-sm);
+}
+
 .suggestionActions {
     display: flex;
     flex-shrink: 0;

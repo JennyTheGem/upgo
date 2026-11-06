@@ -71,10 +71,10 @@ export function useProject(id: string, onChanged: () => void) {
         [send],
     )
 
-    const dismiss = useCallback(
-        async (ids: string[]): Promise<boolean> => {
+    const suggest = useCallback(
+        async (body: Parameters<typeof api.suggestions>[1]): Promise<boolean> => {
             try {
-                const suggestions = await api.dismiss(id, ids)
+                const suggestions = await api.suggestions(id, body)
                 setData((d) => d && { ...d, suggestions })
                 return true
             } catch (e) {
@@ -83,6 +83,24 @@ export function useProject(id: string, onChanged: () => void) {
             }
         },
         [id],
+    )
+
+    // `undo` puts an Undo on a success toast: the suggestions return to their old spots, then its ops run (taking back goals made from them).
+    // Restore first, so a failed step leaves a duplicate, never a lost suggestion.
+    const dismiss = useCallback(
+        async (ids: string[], undo?: { message: string; ops?: Op[] }): Promise<boolean> => {
+            const before = latest.current?.suggestions ?? []
+            const ok = await suggest({ dismiss: ids })
+            if (ok && undo) {
+                const restore = before.flatMap((suggestion, at) => (ids.includes(suggestion.id) ? [{ at, suggestion }] : []))
+                toast.undoable(undo.message, async () => {
+                    if (!restore.length || !(await suggest({ restore }))) return
+                    for (const o of undo.ops ?? []) if (!(await send(o))) return
+                })
+            }
+            return ok
+        },
+        [send, suggest],
     )
 
     return { data, error, reload, run, dismiss }

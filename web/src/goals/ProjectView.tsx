@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
 import { fromSuggestion, hintedSection } from "../../../src/core/mutate.ts"
 import { summarize } from "../../../src/core/summary.ts"
 import type { Item, Section, Suggestion } from "../../../src/core/schema.ts"
+import { slugify, uniqueSlug } from "../../../src/core/util.ts"
 import { isOpenStatus } from "../../../src/core/vocab.ts"
 import { api, errorText } from "../api.ts"
 import Button from "../primitives/button/Button.tsx"
@@ -28,6 +29,10 @@ import TrapsPanel from "./TrapsPanel.tsx"
 import { useProject } from "./useProject.ts"
 
 type Editing = { item?: Item; section?: number }
+
+const DROP_REASONS = ["Out of scope", "Already done", "Not worth it", "Duplicate"]
+// `"Title"` for one, `3 suggestions` for more.
+const what = (list: { title: string }[]) => (list.length > 1 ? `${list.length} suggestions` : `"${list[0].title}"`)
 
 const neighbor = (groups: Group[], item: Item, dir: "up" | "down") => {
     const peers = groups.find((g) => g.section.n === item.section)?.items ?? []
@@ -72,6 +77,8 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
     // Suggestions being added to goals, one modal at a time.
     const [adopting, setAdopting] = useState<Suggestion[]>([])
     const adopted = useRef(false)
+    // Suggestions on their way to goals, so a double click can't add one twice.
+    const busy = useRef(new Set<string>())
     const [over, setOver] = useState<string | null>(null)
     const [dragging, setDragging] = useState<string | null>(null)
     const menu = useDropdownTrigger()
@@ -157,6 +164,7 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
                 description: "Dropped items stay in the file with their reason, so nobody proposes them again.",
                 placeholder: "Reason",
                 confirmLabel: "Drop",
+                presets: DROP_REASONS,
             })
             if (reason) run({ op: "drop", id: item.id, reason }, true)
         },
@@ -196,6 +204,27 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
         },
     }
 
+    // As goals, one by one with ids picked here, so the Undo can delete them again and bring the suggestions back.
+    const toGoals = async (all: Suggestion[], rest: (s: Suggestion) => Parameters<typeof fromSuggestion>[1], message: (w: string) => string) => {
+        const list = all.filter((s) => !busy.current.has(s.id))
+        for (const s of list) busy.current.add(s.id)
+        try {
+            const taken = new Set(file.items.map((i) => i.id))
+            const added: { s: Suggestion; id: string }[] = []
+            for (const s of list) {
+                const goalId = uniqueSlug(slugify(s.title), taken)
+                taken.add(goalId)
+                if (!(await run({ op: "add", item: { ...fromSuggestion(s, rest(s)), id: goalId } }))) break
+                added.push({ s, id: goalId })
+            }
+            if (!added.length) return false
+            const undo = { message: message(what(added.map((a) => a.s))), ops: added.map((a) => ({ op: "delete" as const, id: a.id })) }
+            return (await dismiss(added.map((a) => a.s.id), undo)) && added.length === all.length
+        } finally {
+            for (const s of list) busy.current.delete(s.id)
+        }
+    }
+
     // Saved as dropped goals (in their hinted section, else the first), so agents see the reason and don't suggest them again.
     const dropSuggestions = async (list: Suggestion[]) => {
         const reason = await promptText({
@@ -203,15 +232,18 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
             description: "They are saved as dropped goals with this reason, so nobody suggests them again.",
             placeholder: "Reason",
             confirmLabel: "Drop",
+            presets: DROP_REASONS,
         })
         if (!reason) return false
-        const done: string[] = []
-        for (const s of list) {
-            const item = fromSuggestion(s, { section: hintedSection(file, s) ?? file.sections[0].n, phase: "later", status: "dropped", note: reason })
-            if (!(await run({ op: "add", item }))) break
-            done.push(s.id)
-        }
-        return done.length > 0 && (await dismiss(done)) && done.length === list.length
+        const section = (s: Suggestion) => hintedSection(file, s) ?? file.sections[0].n
+        return toGoals(list, (s) => ({ section: section(s), phase: "later", status: "dropped", note: reason }), (w) => `Dropped ${w}`)
+    }
+
+    // `quick` (Shift+click) skips the form: straight to Later in the hinted section. Ones without a usable hint still get the form.
+    const adoptSuggestions = (list: Suggestion[], quick: boolean) => {
+        const hinted = quick ? list.filter((s) => hintedSection(file, s) !== undefined) : []
+        setAdopting(list.filter((s) => !hinted.includes(s)))
+        if (hinted.length) toGoals(hinted, (s) => ({ section: hintedSection(file, s)!, phase: "later" }), (w) => `Added ${w} to Later`)
     }
 
     const addSection = async () => {
@@ -312,10 +344,12 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
                         suggestions={data.suggestions}
                         error={data.suggestionsError}
                         canAdopt={file.sections.length > 0}
-                        onAdopt={setAdopting}
-                        onDismiss={dismiss}
+                        onAdopt={adoptSuggestions}
+                        onDismiss={(list) => dismiss(list.map((s) => s.id), { message: `Deleted ${what(list)}` })}
                         onDrop={dropSuggestions}
                         onOpenRelated={rowApi.openRelated}
+                        dropped={file.items.filter((i) => i.status === "dropped")}
+                        onOpenGoal={jump}
                         sections={file.sections}
                     />
                 ) : (

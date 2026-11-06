@@ -115,6 +115,18 @@ describe("suggestions", () => {
         expect(readSuggestions(project).map((s) => s.id)).toEqual(["b"])
     })
 
+    it("restores dismissed ones at their old index", async () => {
+        const a = { id: "a", title: "A", created: "2026-11-03" }
+        await updateSuggestions(project, () => [{ id: "b", title: "B", created: "2026-11-03" }])
+        const restore = (body: unknown) =>
+            req("/api/projects/demo/suggestions", { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json", "X-Upgo": "1" } })
+        expect((await restore({ restore: [{ at: 0, suggestion: { id: "a" } }] })).status).toBe(400)
+        expect((await restore({ restore: [{ at: 0, suggestion: a }] })).status).toBe(200)
+        expect((await restore({ restore: [{ at: 0, suggestion: a }] })).json().suggestions.map((s: { id: string }) => s.id)).toEqual(["a", "b"])
+        const more = [3, 1].map((at) => ({ at, suggestion: { id: `s${at}`, title: `S${at}`, created: "2026-11-03" } }))
+        expect((await restore({ restore: more })).json().suggestions.map((s: { id: string }) => s.id)).toEqual(["a", "s1", "b", "s3"])
+    })
+
     it("still serves the goals when suggestions.json is broken", async () => {
         writeFileSync(join(project, "suggestions.json"), "{")
         const r = await req("/api/projects/demo")

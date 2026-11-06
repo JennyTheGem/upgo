@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { vi } from "vitest"
 import App from "../../web/src/App.tsx"
 import { applyOp, opSchema } from "../../src/core/ops.ts"
+import { restoreSuggestions } from "../../src/core/suggestions.ts"
 import { formatIssues, type GoalsFile, type Item, type Suggestion } from "../../src/core/schema.ts"
 import { summarize } from "../../src/core/summary.ts"
 import { localIssues } from "../../src/core/rules.ts"
@@ -89,9 +90,9 @@ export function fakeServer(initial: Record<string, FakeProject>) {
             return reply(200, { id })
         }
         if (m[4]) {
-            const { dismiss } = JSON.parse(String(init?.body))
-            ops.push({ dismiss })
-            p.suggestions = (p.suggestions ?? []).filter((s) => !dismiss.includes(s.id))
+            const body = JSON.parse(String(init?.body))
+            ops.push(body)
+            p.suggestions = body.dismiss ? (p.suggestions ?? []).filter((s) => !body.dismiss.includes(s.id)) : restoreSuggestions(p.suggestions ?? [], body.restore)
             return reply(200, { suggestions: p.suggestions })
         }
         if (m[2]) {

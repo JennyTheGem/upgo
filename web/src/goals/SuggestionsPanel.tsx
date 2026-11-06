@@ -1,5 +1,6 @@
-import { useState } from "react"
-import type { Section, Suggestion } from "../../../src/core/schema.ts"
+import { useState, type MouseEvent } from "react"
+import type { Item, Section, Suggestion } from "../../../src/core/schema.ts"
+import { repeats } from "../../../src/core/similar.ts"
 import Button from "../primitives/button/Button.tsx"
 import Chip from "../primitives/chip/Chip.tsx"
 import EmptyState from "../primitives/emptyState/EmptyState.tsx"
@@ -13,15 +14,19 @@ type Props = {
     suggestions: Suggestion[]
     error?: string
     canAdopt: boolean
-    onAdopt: (list: Suggestion[]) => void
-    onDismiss: (ids: string[]) => Promise<boolean>
+    // `quick`: Shift+click, add without the form.
+    onAdopt: (list: Suggestion[], quick: boolean) => void
+    onDismiss: (list: Suggestion[]) => Promise<boolean>
     onDrop: (list: Suggestion[]) => Promise<boolean>
     // A related ref, `project:item`.
     onOpenRelated: (ref: string) => void
     sections: Section[]
+    // Dropped goals, to flag a suggestion that repeats one.
+    dropped: Item[]
+    onOpenGoal: (id: string) => void
 }
 
-type Action = { label: string; hint: string; icon: string; color?: string; needsSection?: boolean; run: () => void }
+type Action = { label: string; hint: string; icon: string; color?: string; needsSection?: boolean; run: (e: MouseEvent) => void }
 
 const toggled = (set: Set<string>, id: string) => {
     const next = new Set(set)
@@ -30,11 +35,12 @@ const toggled = (set: Set<string>, id: string) => {
 }
 
 // Agents add these with `upgo suggestion add`. Rows look and act like goal rows.
-export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt, onDismiss, onDrop, onOpenRelated, sections }: Props) {
+export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt, onDismiss, onDrop, onOpenRelated, sections, dropped, onOpenGoal }: Props) {
     const [ticked, setTicked] = useState<Set<string>>(new Set())
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
     const chosen = suggestions.filter((s) => ticked.has(s.id))
     const adoptTitle = canAdopt ? undefined : "Add a section first"
+    const adoptHint = "Add to goals (Shift+click: straight to Later)"
 
     if (error) return <ErrorState className="uiContentContainer" message={error} />
     if (!suggestions.length) {
@@ -53,17 +59,18 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
     // Two groups: keep it, then get rid of it.
     const actions = (s: Suggestion): Action[][] => [
         [
-            { label: "Add to goals", hint: "Add to goals", icon: "iconify:add", needsSection: true, run: () => onAdopt([s]) },
+            { label: "Add to goals", hint: adoptHint, icon: "iconify:add", needsSection: true, run: (e) => onAdopt([s], e.shiftKey) },
             { label: "Copy", hint: "Copy for agent", icon: "iconify:content-copy", run: () => copyForAgent([s]) },
         ],
         [
             { label: "Drop", hint: "Drop: never suggest again", icon: "iconify:block", color: "var(--tone-orange)", needsSection: true, run: () => onDrop([s]) },
-            { label: "Delete", hint: "Delete: remove, may come back", icon: "iconify:delete", color: "var(--color-danger)", run: () => onDismiss([s.id]) },
+            { label: "Delete", hint: "Delete: remove, may come back", icon: "iconify:delete", color: "var(--color-danger)", run: () => onDismiss([s]) },
         ],
     ]
 
     const row = (s: Suggestion) => {
         const open = expanded.has(s.id)
+        const twin = dropped.find((i) => repeats(s.title, i))
         return (
             <li
                 key={s.id}
@@ -100,6 +107,17 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
                         </span>
                     ))}
                 </div>
+                {twin && (
+                    <div className="itemDetail suggestionTwin">
+                        <div className="itemMeta">
+                            <span className="microLabel">Dropped before</span>
+                            <Chip tone="rose" title="Open the dropped goal" onClick={() => onOpenGoal(twin.id)}>
+                                {twin.title}
+                            </Chip>
+                            <span className="caption op-80 break-words">{twin.note?.trim() || "No reason given"}</span>
+                        </div>
+                    </div>
+                )}
                 {open && (
                     <div className="itemDetail">
                         {s.body ? <Markdown className="itemBody" text={s.body} /> : <span className="caption op-50">No details.</span>}
@@ -148,9 +166,9 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
                         variant="secondary"
                         imgProps={{ img: "iconify:add" }}
                         disabled={!canAdopt}
-                        title={adoptTitle}
-                        onClick={() => {
-                            onAdopt(chosen)
+                        title={adoptTitle ?? adoptHint}
+                        onClick={(e) => {
+                            onAdopt(chosen, e.shiftKey)
                             setTicked(new Set())
                         }}
                     >
@@ -171,7 +189,7 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
                         variant="secondary"
                         imgProps={{ img: "iconify:delete" }}
                         onClick={async () => {
-                            if (await onDismiss(chosen.map((s) => s.id))) setTicked(new Set())
+                            if (await onDismiss(chosen)) setTicked(new Set())
                         }}
                     >
                         Delete

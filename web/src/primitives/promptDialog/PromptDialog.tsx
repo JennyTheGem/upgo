@@ -2,6 +2,7 @@ import "./promptDialog.css"
 import { useEffect, useRef, useState } from "react"
 import Dialog from "../dialog/Dialog.tsx"
 import Button from "../button/Button.tsx"
+import Chip from "../chip/Chip.tsx"
 import { promptCancel, promptStore, promptSubmit } from "./prompt.ts"
 
 export default function PromptDialog() {
@@ -29,6 +30,22 @@ export default function PromptDialog() {
                     if (!blocked) promptSubmit(trimmed)
                 }}
             >
+                {options.presets && (
+                    <div className="promptPresets" role="group" aria-label="Presets">
+                        {options.presets.map((p) => (
+                            <Chip
+                                key={p}
+                                tone={p === trimmed ? "accent" : "neutral"}
+                                onClick={() => {
+                                    setValue(p)
+                                    inputRef.current?.focus()
+                                }}
+                            >
+                                {p}
+                            </Chip>
+                        ))}
+                    </div>
+                )}
                 <label className="promptField">
                     <input
                         ref={inputRef}

@@ -5,10 +5,10 @@ import { pathToFileURL } from "node:url"
 import { z } from "zod"
 import { applyOp, opSchema } from "./src/core/ops.ts"
 import { forget, readRegistry, registryPath, UPGO_DIR, type Entry } from "./src/core/registry.ts"
-import { formatIssues, PHASES, slug } from "./src/core/schema.ts"
+import { formatIssues, PHASES, slug, suggestionSchema } from "./src/core/schema.ts"
 import { summarize } from "./src/core/summary.ts"
 import { GOALS, readGoals, updateGoals } from "./src/core/store.ts"
-import { removeSuggestions, SUGGESTIONS, trySuggestions, updateSuggestions } from "./src/core/suggestions.ts"
+import { removeSuggestions, restoreSuggestions, SUGGESTIONS, trySuggestions, updateSuggestions } from "./src/core/suggestions.ts"
 import { today, UpgoError } from "./src/core/util.ts"
 
 export type ServerOptions = { port?: number; staticDir?: string; dev?: boolean }
@@ -19,7 +19,10 @@ const EMPTY_PHASES = Object.fromEntries(PHASES.map((p) => [p, 0]))
 const DEV_PORT = 5173
 const MAX_BODY = 1_000_000
 const WATCHED = [GOALS, SUGGESTIONS]
-const dismissSchema = z.strictObject({ dismiss: z.array(slug).min(1) })
+const suggestionsBody = z.union([
+    z.strictObject({ dismiss: z.array(slug).min(1) }),
+    z.strictObject({ restore: z.array(z.strictObject({ at: z.number().int().nonnegative(), suggestion: suggestionSchema })).min(1) }),
+])
 const TYPES: Record<string, string> = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
@@ -186,9 +189,10 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
                 return fail(res, e instanceof UpgoError ? 413 : 400, e instanceof UpgoError ? e.message : "body is not valid JSON")
             }
             if (parts[2] === "suggestions") {
-                const asked = dismissSchema.safeParse(body)
+                const asked = suggestionsBody.safeParse(body)
                 if (!asked.success) return fail(res, 400, "invalid request", formatIssues(asked.error))
-                const suggestions = await updateSuggestions(entry.path, (list) => removeSuggestions(list, asked.data.dismiss))
+                const a = asked.data
+                const suggestions = await updateSuggestions(entry.path, (list) => ("dismiss" in a ? removeSuggestions(list, a.dismiss) : restoreSuggestions(list, a.restore)))
                 return send(res, 200, { suggestions })
             }
             const op = opSchema.safeParse(body)

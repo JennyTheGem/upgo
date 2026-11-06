@@ -8,6 +8,8 @@ export interface PromptOptions {
     initialValue?: string
     // false lets an empty answer through (an optional note); cancel still resolves null.
     required?: boolean
+    // Chips that fill in the field; free text still works.
+    presets?: string[]
 }
 
 type State = { open: boolean; options: PromptOptions; resolve: ((value: string | null) => void) | null }

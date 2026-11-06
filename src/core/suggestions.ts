@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { EM_DASH } from "./rules.ts"
 import { formatIssues, isOpenStatus, suggestionsFileSchema, type GoalsFile, type Status, type Suggestion } from "./schema.ts"
+import { repeats } from "./similar.ts"
 import { withLock, writeAtomic } from "./store.ts"
 import { slugify, uniqueSlug, UpgoError } from "./util.ts"
 
@@ -85,25 +86,11 @@ export function editSuggestion(list: Suggestion[], id: string, patch: Suggestion
     })
 }
 
-const STOP = new Set(["a", "an", "the", "and", "or", "for", "to", "of", "on", "in", "with", "by", "from", "is"])
-const words = (t: string) => new Set(slugify(t, 200).split("-").filter((w) => !STOP.has(w)))
-
-// Same slug, or at least two thirds of the longer title's words shared.
-export function similarTitle(a: string, b: string): boolean {
-    if (slugify(a) === slugify(b)) return true
-    const x = words(a)
-    const y = words(b)
-    const shared = [...x].filter((w) => y.has(w)).length
-    return shared > 0 && shared / Math.max(x.size, y.size) >= 2 / 3
-}
-
 // Goals (any status) and suggestions a new suggestion would repeat, one line each.
 export function duplicatesOf(title: string, file: GoalsFile, list: Suggestion[]): string[] {
-    const slug = slugify(title)
-    const hit = (id: string, t: string) => id === slug || similarTitle(title, t)
     return [
-        ...file.items.filter((i) => hit(i.id, i.title)).map((i) => `goal \`${i.id}\` ${i.title} (${i.status}${i.status === "dropped" && i.note ? `: ${i.note}` : ""})`),
-        ...list.filter((s) => hit(s.id, s.title)).map((s) => `suggestion \`${s.id}\` ${s.title}`),
+        ...file.items.filter((i) => repeats(title, i)).map((i) => `goal \`${i.id}\` ${i.title} (${i.status}${i.status === "dropped" && i.note ? `: ${i.note}` : ""})`),
+        ...list.filter((s) => repeats(title, s)).map((s) => `suggestion \`${s.id}\` ${s.title}`),
     ]
 }
 
@@ -128,4 +115,14 @@ export function removeSuggestions(list: Suggestion[], ids: string[]): Suggestion
     const missing = ids.filter((id) => !list.some((s) => s.id === id))
     if (missing.length) throw new UpgoError(`no suggestion ${missing.map((id) => `\`${id}\``).join(", ")}`)
     return list.filter((s) => !ids.includes(s.id))
+}
+
+// Undo of a dismiss: each back at its old index. One already there again is skipped.
+export function restoreSuggestions(list: Suggestion[], back: { at: number; suggestion: Suggestion }[]): Suggestion[] {
+    noEmDash(back)
+    const out = [...list]
+    for (const { at, suggestion } of [...back].sort((a, b) => a.at - b.at)) {
+        if (!out.some((s) => s.id === suggestion.id)) out.splice(Math.min(at, out.length), 0, suggestion)
+    }
+    return out
 }

@@ -6,11 +6,4 @@ Structured goals for every project: a validating CLI for agents, a slim generate
 
 Open work only. Full item: `upgo show <id>`. Any slice: `upgo list --phase later,wayLater,maybe`, `--status done,dropped`, `--section <n>`, `--search <text>`.
 
-Closed sections: §1 CLI and core · §3 Rollout
-
-## 2. Dashboard
-
-- `show-the-dropped-reason-on-a-near-duplicate` Show the dropped reason on a near duplicate (next)
-- `undo-for-dismiss-and-drop` Undo for dismiss and drop (next)
-- `drop-reason-presets` Drop reason presets (next)
-- `one-click-adopt-with-defaults` One click adopt with defaults (next)
+Closed sections: §1 CLI and core · §2 Dashboard · §3 Rollout
