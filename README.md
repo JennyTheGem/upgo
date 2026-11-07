@@ -97,6 +97,7 @@ Outside the projects: `~/.upgo/registry.json` (which projects exist; `UPGO_REGIS
 - **Dashboard says it is not built**: `npm run build` here.
 - **This folder moved, or upgo was reinstalled somewhere else**: the installed hooks point at the old path and fail. Run `upgo init` again in each project.
 - **Remove a project from the dashboard**: its Remove button, or `upgo forget <id>`. Its files stay where they are.
+- **Rename a project**: Rename in its right-click menu, or `upgo rename <id> <new-id>`. Refs to it from other registered projects follow; the folder stays put.
 
 ## Pieces
 

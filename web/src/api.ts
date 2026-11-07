@@ -67,6 +67,13 @@ export const api = {
             headers: { "Content-Type": "application/json", "X-Upgo": "1" },
             body: JSON.stringify(body),
         }).then((r) => r.suggestions),
+    // `failed`: other projects whose refs could not be repointed.
+    rename: (id: string, to: string) =>
+        request<{ id: string; failed: string[] }>(`${at(id)}/rename`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Upgo": "1" },
+            body: JSON.stringify({ to }),
+        }),
     // Unregisters only: the folder and its goals.json stay.
     forget: (id: string) => request<{ id: string }>(at(id), { method: "DELETE", headers: { "X-Upgo": "1" } }),
 }

@@ -57,8 +57,22 @@ export default function App() {
     }
     // A related chip may point at a project that is not registered here.
     const open = (id: string, item: string) => (projects?.some((p) => p.id === id) ? select(id, item) : toast.error(`Project ${id} is not registered`))
+    // Favorites and the open project follow the new id. Select once the list has it, or the fallback flashes.
+    const renamed = (from: string, to: string) => {
+        setFavorites((f) => f.map((x) => (x === from ? to : x)))
+        load().then(() => selected === from && select(to))
+    }
     const openMenu = (e: MouseEvent, p: ProjectSummary) =>
-        menu.openFromEvent(e, projectMenu(p, { favorite: favorites.includes(p.id), open: () => select(p.id), toggleFavorite: () => toggleFavorite(p.id), removed: load }))
+        menu.openFromEvent(
+            e,
+            projectMenu(p, {
+                favorite: favorites.includes(p.id),
+                open: () => select(p.id),
+                toggleFavorite: () => toggleFavorite(p.id),
+                removed: load,
+                renamed: (to) => renamed(p.id, to),
+            }),
+        )
 
     let main
     if (!projects) main = error ? <ErrorState className="uiContentContainer" message={error} onRetry={load} /> : null

@@ -10,6 +10,7 @@ import { checkProject, fixProject, refChecker } from "./src/core/check.ts"
 import * as m from "./src/core/mutate.ts"
 import { checkRegistrable, findEntry, forget, readRegistry, register } from "./src/core/registry.ts"
 import { isManaged, isOpen, PHASE_LABEL, PHASES, POINTER_KEYS, SIZES, STATUSES, type GoalsFile, type Item, type Pointers } from "./src/core/schema.ts"
+import { renameProject } from "./src/core/rename.ts"
 import { resolveId } from "./src/core/similar.ts"
 import { findProjectDir, GOALS, MD, readGoals, saveGoals, serialize, updateGoals, writeAtomic } from "./src/core/store.ts"
 import {
@@ -64,6 +65,7 @@ Setup and checks
                                       only when goals.json is otherwise valid
   upgo render                         rewrite goals.md from goals.json
   upgo import <goals.md> [--completed path] [--out file] [--id slug] [--force]
+  upgo rename <id> <new-id>           change a project's id, in the registry, its files and every related ref to it
   upgo forget <id>                    drop a project from the registry
   upgo ui [--port 4141] [--no-open]   start the dashboard
 
@@ -710,6 +712,17 @@ async function run(argv: string[], io: Io): Promise<number> {
             if (report.skipped.length) lines.push(`skipped ${report.skipped.length}:`, ...report.skipped.map((s) => `  - ${s}`))
             io.out(lines.join("\n") + "\n")
             return 0
+        }
+
+        case "rename": {
+            const { positionals } = parse(rest, {})
+            const from = need(positionals[0], "project id")
+            const to = need(positionals[1], "new project id")
+            const { updated, failed } = await renameProject(from, to)
+            io.out(`renamed ${from} to ${to}\n${updated.length ? `updated refs in: ${updated.join(", ")}\n` : ""}`)
+            if (!failed.length) return 0
+            io.err(`these projects could not be updated and may still point at \`${from}:\`, fix them and run \`upgo check --all\`:\n${failed.map((f) => `  - ${f}`).join("\n")}\n`)
+            return 1
         }
 
         case "forget": {

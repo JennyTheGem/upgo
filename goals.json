@@ -821,6 +821,16 @@
       "size": "M",
       "created": "2026-11-07",
       "updated": "2026-11-07"
+    },
+    {
+      "id": "rename-projects",
+      "section": 1,
+      "title": "Rename projects",
+      "phase": "now",
+      "status": "done",
+      "created": "2026-11-07",
+      "updated": "2026-11-07",
+      "note": "upgo rename <id> <new-id> plus dashboard Rename menu entry; repoints registry, own files and refs in other projects"
     }
   ]
 }

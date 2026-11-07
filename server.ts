@@ -6,6 +6,7 @@ import { z } from "zod"
 import { ARCHIVE, tryArchive } from "./src/core/archive.ts"
 import { applyOp, opSchema } from "./src/core/ops.ts"
 import { forget, readRegistry, registryPath, UPGO_DIR, type Entry } from "./src/core/registry.ts"
+import { renameProject } from "./src/core/rename.ts"
 import { formatIssues, PHASES, slug, suggestionSchema } from "./src/core/schema.ts"
 import { summarize } from "./src/core/summary.ts"
 import { GOALS, readGoals, updateGoals } from "./src/core/store.ts"
@@ -24,6 +25,7 @@ const suggestionsBody = z.union([
     z.strictObject({ dismiss: z.array(slug).min(1) }),
     z.strictObject({ restore: z.array(z.strictObject({ at: z.number().int().nonnegative(), suggestion: suggestionSchema })).min(1) }),
 ])
+const renameBody = z.strictObject({ to: slug })
 const TYPES: Record<string, string> = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
@@ -179,7 +181,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
             return send(res, 200, { id: entry.id })
         }
 
-        if (method === "POST" && parts.length === 3 && (parts[2] === "ops" || parts[2] === "suggestions")) {
+        if (method === "POST" && parts.length === 3 && ["ops", "suggestions", "rename"].includes(parts[2])) {
             const refused = refusal(req)
             if (refused) return fail(res, 403, refused)
             if (!req.headers["content-type"]?.startsWith("application/json")) return fail(res, 415, "expected application/json")
@@ -195,6 +197,12 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
                 const a = asked.data
                 const suggestions = await updateSuggestions(entry.path, (list) => ("dismiss" in a ? removeSuggestions(list, a.dismiss) : restoreSuggestions(list, a.restore)))
                 return send(res, 200, { suggestions })
+            }
+            if (parts[2] === "rename") {
+                const asked = renameBody.safeParse(body)
+                if (!asked.success) return fail(res, 400, "invalid request", formatIssues(asked.error))
+                const { failed } = await renameProject(entry.id, asked.data.to)
+                return send(res, 200, { id: asked.data.to, failed })
             }
             const op = opSchema.safeParse(body)
             if (!op.success) return fail(res, 400, "invalid operation", formatIssues(op.error))

@@ -54,7 +54,7 @@ export function readRegistry(): Entry[] {
     return parsed.data
 }
 
-async function writeRegistry(entries: Entry[]): Promise<void> {
+export async function writeRegistry(entries: Entry[]): Promise<void> {
     await writeAtomic(registryPath(), JSON.stringify(entries, null, 2) + "\n")
 }
 

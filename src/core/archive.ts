@@ -26,6 +26,11 @@ export function readArchive(dir: string): Item[] {
     return parsed.data.items
 }
 
+// Callers hold the goals.json lock.
+export async function writeArchive(dir: string, project: string, items: Item[]): Promise<void> {
+    await writeAtomic(join(dir, ARCHIVE), JSON.stringify({ version: 1, project, items }, null, 2) + "\n")
+}
+
 // For readers that carry on past a broken archive: the items, or what is wrong with it.
 export function tryArchive(dir: string): { archived: Item[]; archiveError?: string } {
     try {
@@ -60,7 +65,7 @@ export async function archiveDone(dir: string, cutoff: string): Promise<Item[]> 
         const had = readArchive(dir)
         const seen = new Set(had.map((i) => JSON.stringify(i)))
         const items = [...had, ...old.filter((i) => !seen.has(JSON.stringify(i)))]
-        await writeAtomic(join(dir, ARCHIVE), JSON.stringify({ version: 1, project: file.project, items }, null, 2) + "\n")
+        await writeArchive(dir, file.project, items)
         await saveGoals(dir, keep)
         return old
     })

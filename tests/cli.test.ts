@@ -1,7 +1,9 @@
 import { execFileSync } from "node:child_process"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+import { ARCHIVE, writeArchive } from "../src/core/archive.ts"
 import { readRegistry } from "../src/core/registry.ts"
+import { readSuggestions, SUGGESTIONS } from "../src/core/suggestions.ts"
 import { render } from "../src/core/render.ts"
 import { GOALS, MD, readGoals } from "../src/core/store.ts"
 import { cli } from "./cliHarness.ts"
@@ -481,6 +483,31 @@ describe("check, render, forget", () => {
         expect(r.code).toBe(1)
         expect(r.out).toBe("ok: demo\n")
         expect(r.err).toMatch(/^bad: 1 issue/)
+    })
+
+    it("renames a project and repoints every ref to it", async () => {
+        const withRef = (project: string, id: string, ref: string) => ({ ...fixture(), project, items: fixture().items.map((i) => (i.id === id ? { ...i, related: [ref] } : i)) })
+        const cwd = await registered(withRef("demo", "beta", "demo:alpha"))
+        await writeArchive(cwd, "demo", [])
+        const other = await makeProject(withRef("other", "alpha", "demo:beta"))
+        writeFileSync(join(other, SUGGESTIONS), JSON.stringify({ version: 1, suggestions: [{ id: "idea", title: "Idea", related: ["demo:gamma"], created: "2026-10-01" }] }))
+        ok(cli(["init", "--no-hooks"], { cwd: other }))
+        expect(ok(cli(["rename", "demo", "demo-two"], { cwd }))).toBe("renamed demo to demo-two\nupdated refs in: other\n")
+        expect(readRegistry().map((e) => e.id)).toEqual(["demo-two", "other"])
+        expect(readGoals(cwd).project).toBe("demo-two")
+        expect(readFileSync(join(cwd, MD), "utf8")).toMatch(/^# demo-two: goals/)
+        expect(item(cwd, "beta")?.related).toEqual(["demo-two:alpha"])
+        expect(JSON.parse(readFileSync(join(cwd, ARCHIVE), "utf8")).project).toBe("demo-two")
+        expect(item(other, "alpha")?.related).toEqual(["demo-two:beta"])
+        expect(readSuggestions(other)[0].related).toEqual(["demo-two:gamma"])
+        ok(cli(["check", "--all"], { cwd }))
+        fails(cli(["rename", "demo", "x"], { cwd }), /no registered project `demo`/)
+        fails(cli(["rename", "demo-two", "other"], { cwd }), /`other` is already registered/)
+        fails(cli(["rename", "demo-two", "Bad Id"], { cwd }), /bad new id/)
+        writeFileSync(join(cwd, SUGGESTIONS), "{")
+        fails(cli(["rename", "demo-two", "demo-three"], { cwd }), /rename stopped .*run `upgo rename demo-two demo-three` again/)
+        expect(readGoals(cwd).project).toBe("demo-two")
+        expect(readRegistry().map((e) => e.id)).toEqual(["demo-two", "other"])
     })
 
     it("forgets a project", async () => {
