@@ -26,9 +26,11 @@ import {
     type SuggestionPatch,
 } from "./src/core/suggestions.ts"
 import { slugify, today, UpgoError } from "./src/core/util.ts"
+import * as ui from "./src/ui.ts"
 
 const CLI = fileURLToPath(import.meta.url).replace(/\\/g, "/")
 const HOOK_MARK = "upgo"
+const NO_PROJECTS = "no projects yet, run `upgo init` in a project folder"
 // A shebang naming a POSIX-ish shell, directly or through env.
 const SHELL = /^#!\s*(?:\S*\/)?(?:env\s+(?:-\S+\s+)*)?(?:\S*\/)?(?:sh|bash|dash|zsh|ksh)(?:\s|$)/
 
@@ -76,7 +78,8 @@ show, edit, done, drop and reopen take a unique id prefix too; a typo suggests t
 Phases: ${PHASES.join(", ")}. Statuses: ${STATUSES.join(", ")}.
 `
 
-type Io = { out: (s: string) => void; err: (s: string) => void; stdin: () => Promise<string> }
+// tty: stdout is a terminal, so print the upex-style layout; agents get plain text.
+type Io = { out: (s: string) => void; err: (s: string) => void; stdin: () => Promise<string>; tty?: boolean }
 type Options = NonNullable<ParseArgsConfig["options"]>
 
 const TARGET = { dir: { type: "string" }, project: { type: "string" } } as const satisfies Options
@@ -201,6 +204,43 @@ function listText(file: GoalsFile, items: Item[]): string {
     return out.join("\n") + "\n"
 }
 
+const STATUS_STYLE: Partial<Record<Item["status"], (s: string) => string>> = { partial: ui.yellow, done: ui.green }
+const phaseCell = (i: Item) => (i.phase === "now" ? ui.bold(PHASE_LABEL.now) : ui.dim(PHASE_LABEL[i.phase]))
+const statusCell = (i: Item) => (STATUS_STYLE[i.status] ?? ui.dim)(i.status)
+
+function itemView(item: Item, file: GoalsFile, note = ""): string {
+    const section = file.sections.find((s) => s.n === item.section)
+    const meta = [ui.dim(`§${item.section} ${section?.title ?? ""}`.trim()), phaseCell(item), statusCell(item), item.size, item.scope?.join(", ")]
+    const out = [ui.heading(item.title, note), ui.line(`${ui.bold(item.id)}   ${meta.filter(Boolean).join(ui.dim(" · "))}`)]
+    if (item.body?.trim()) out.push("\n", ui.prose(item.body.trim()))
+    const facts: [string, string][] = POINTER_KEYS.flatMap((k) => (item.pointers?.[k] ?? []).map((v, n): [string, string] => [n ? "" : k, v]))
+    if (item.detail) facts.push(["detail", item.detail])
+    if (item.related?.length) facts.push(["related", item.related.join(", ")])
+    if (item.note?.trim()) facts.push(["note", item.note.trim()])
+    if (facts.length) out.push("\n", ui.defList(facts.map(([k, v]) => ({ term: [[k, ui.dim]], text: [[v]] }))).join("\n") + "\n")
+    out.push("\n", ui.line(ui.dim(`created ${item.created} · updated ${item.updated}`)), "\n")
+    return out.join("")
+}
+
+function listView(file: GoalsFile, items: Item[]): string {
+    if (!items.length) return ui.empty("no matching items")
+    // Long ids are clipped so titles keep room; a unique id prefix still works for show, edit, done.
+    const idW = Math.floor(ui.cols() * 0.3)
+    const rows = items.map((i) => [ui.dim(ui.clip(i.id, idW)), i.title, phaseCell(i), i.status === "planned" ? "" : statusCell(i)])
+    const lines = ui.table(rows, { indent: 4, flex: 1 })
+    const out = [ui.heading("Goals", file.project)]
+    for (const s of file.sections) {
+        const mine = items.flatMap((i, n) => (i.section === s.n ? [lines[n]] : []))
+        if (mine.length) out.push(ui.line(`${ui.dim(String(s.n))}  ${ui.bold(s.title)}`), ...mine.map((l) => l + "\n"), "\n")
+    }
+    out.push(ui.footer(`${items.length} item${items.length === 1 ? "" : "s"}`))
+    return out.join("")
+}
+
+// Rows under a heading, or a quiet line when there are none.
+const tableView = (title: string, note: string, rows: string[][], none: string, flex = 1) =>
+    rows.length ? ui.heading(title, note) + ui.table(rows, { flex }).map((l) => l + "\n").join("") + "\n" : ui.empty(none)
+
 async function installGitHook(dir: string): Promise<string> {
     const git = (...args: string[]) => execFileSync("git", args, { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim()
     let hooks: string, top: string
@@ -298,12 +338,15 @@ async function hook(io: Io): Promise<number> {
 async function run(argv: string[], io: Io): Promise<number> {
     const [cmd = "help", ...rest] = argv
     const day = today()
+    const pretty = !!io.tty
+    // A confirmation: first line green, the rest dim.
+    const say = (msg: string) => io.out(pretty ? msg.split("\n").map((l, i) => ui.line(i ? ui.dim(l) : ui.green(l))).join("") : msg + "\n")
 
     switch (cmd) {
         case "help":
         case "--help":
         case "-h":
-            io.out(HELP)
+            io.out(pretty ? ui.helpView(HELP) : HELP)
             return 0
 
         case "hook":
@@ -328,7 +371,9 @@ async function run(argv: string[], io: Io): Promise<number> {
             if (!values["no-hooks"]) lines.push(await installGitHook(dir), await installClaudeHook(dir))
             const ignored = await ignoreSuggestions(dir)
             if (ignored) lines.push(ignored)
-            io.out(lines.join("\n") + "\n")
+            // Only the "git hook: skipped (...)" style status, never a word in the folder path.
+            const mark = (l: string) => (/^[\w. ]+: skipped/.test(l) ? ui.tag.warn : /^[\w. ]+: already/.test(l) ? ui.tag.skip : ui.tag.ok)
+            io.out(pretty ? ui.heading("Init", file.project) + lines.map((l) => ui.line(`${mark(l)}  ${l}`)).join("") + "\n" : lines.join("\n") + "\n")
             return 0
         }
 
@@ -346,7 +391,7 @@ async function run(argv: string[], io: Io): Promise<number> {
                     (section === undefined || i.section === section) &&
                     (!q || valuesText(i).toLowerCase().includes(q)),
             )
-            io.out(listText(file, items))
+            io.out((pretty ? listView : listText)(file, items))
             return 0
         }
 
@@ -362,9 +407,13 @@ async function run(argv: string[], io: Io): Promise<number> {
             const id = resolveId(given, [...live, ...archive.map((i) => i.id)], `no item \`${given}\` in ${file.project}`)
             const item = file.items.find((i) => i.id === id)
             const trap = file.traps.find((t) => t.id === id)
-            if (item) io.out(itemText(item, file))
+            if (item) io.out(pretty ? itemView(item, file) : itemText(item, file))
+            else if (trap && pretty) io.out(ui.heading(trap.title, "trap") + ui.line(ui.bold(trap.id)) + (trap.body ? "\n" + ui.prose(trap.body.trim()) : "") + "\n")
             else if (trap) io.out(`trap \`${trap.id}\` ${trap.title}\n${trap.body ? `\n${trap.body.trim()}\n` : ""}`)
-            else io.out(`archived in ${ARCHIVE}\n${itemText(archive.findLast((i) => i.id === id)!, file)}`)
+            else {
+                const old = archive.findLast((i) => i.id === id)!
+                io.out(pretty ? itemView(old, file, `archived in ${ARCHIVE}`) : `archived in ${ARCHIVE}\n${itemText(old, file)}`)
+            }
             return 0
         }
 
@@ -375,7 +424,9 @@ async function run(argv: string[], io: Io): Promise<number> {
             const rank = (i: Item) => file.sections.findIndex((s) => s.n === i.section)
             const open = file.items.filter(isOpen).sort((a, b) => rank(a) - rank(b))
             const item = open.find((i) => i.phase === "now") ?? open.find((i) => i.phase === "next")
-            io.out(item ? itemText(item, file) : "nothing in now or next (see `upgo list`)\n")
+            const none = "nothing in now or next (see `upgo list`)"
+            if (pretty) io.out(item ? itemView(item, file) : ui.empty(none))
+            else io.out(item ? itemText(item, file) : none + "\n")
             return 0
         }
 
@@ -383,20 +434,23 @@ async function run(argv: string[], io: Io): Promise<number> {
             const { values } = parse(rest, { ...TARGET, months: { type: "string" } })
             const months = int("months", values.months) ?? DEFAULT_ARCHIVE_MONTHS
             const moved = await archiveDone(projectDir(values), monthsBefore(day, months))
-            io.out(moved.length ? `archived ${moved.length}: ${moved.map((i) => i.id).join(", ")}\n` : `no done items older than ${months} months\n`)
+            say(moved.length ? `archived ${moved.length}: ${moved.map((i) => i.id).join(", ")}` : `no done items older than ${months} months`)
             return 0
         }
 
         case "projects": {
-            const entries = readRegistry()
-            if (!entries.length) io.out("no projects yet, run `upgo init` in a project folder\n")
-            for (const e of entries) {
+            const rows = readRegistry().map((e): typeof e & { open?: number; bad?: string } => {
                 try {
-                    const f = readGoals(e.path)
-                    io.out(`${e.id}  ${f.items.filter(isOpen).length} open  ${e.path}\n`)
+                    return { ...e, open: readGoals(e.path).items.filter(isOpen).length }
                 } catch (err) {
-                    io.out(`${e.id}  unreadable: ${(err as Error).message.split("\n")[0]}  ${e.path}\n`)
+                    return { ...e, bad: `unreadable: ${(err as Error).message.split("\n")[0]}` }
                 }
+            })
+            if (!pretty) io.out(rows.length ? rows.map((r) => `${r.id}  ${r.bad ?? `${r.open} open`}  ${r.path}\n`).join("") : NO_PROJECTS + "\n")
+            else if (!rows.length) io.out(ui.empty(NO_PROJECTS))
+            else {
+                const cells = rows.map((r) => [ui.bold(r.id), r.bad ? ui.red(r.bad) : r.open ? `${r.open} open` : ui.dim("0 open"), ui.dimParent(r.path)])
+                io.out(ui.heading("Projects") + ui.table(cells).map((l) => l + "\n").join("") + ui.footer(`${rows.length} project${rows.length === 1 ? "" : "s"}`))
             }
             return 0
         }
@@ -427,7 +481,7 @@ async function run(argv: string[], io: Io): Promise<number> {
                 added = r.id
                 return r.file
             })
-            io.out(`added ${added}\n`)
+            say(`added ${added}`)
             return 0
         }
 
@@ -447,7 +501,7 @@ async function run(argv: string[], io: Io): Promise<number> {
                 if (!Object.keys(patch).length) throw new UpgoError("nothing to change")
                 return m.editItem(file, id, patch, day)
             })
-            io.out(`edited ${id}\n`)
+            say(`edited ${id}`)
             return 0
         }
 
@@ -459,7 +513,7 @@ async function run(argv: string[], io: Io): Promise<number> {
             const status = cmd === "done" ? "done" : cmd === "drop" ? "dropped" : "planned"
             const note = cmd === "drop" ? need(values.reason, "--reason") : values.note
             await updateGoals(projectDir(values), (file) => m.setStatus(file, (id = m.resolveItem(file, id)), status, note, day))
-            io.out(`${cmd === "reopen" ? "reopened" : status} ${id}\n`)
+            say(`${cmd === "reopen" ? "reopened" : status} ${id}`)
             return 0
         }
 
@@ -467,7 +521,7 @@ async function run(argv: string[], io: Io): Promise<number> {
             const { values, positionals } = parse(rest, TARGET)
             const id = need(positionals[0], "item id")
             await updateGoals(projectDir(values), (file) => m.deleteItem(file, id))
-            io.out(`deleted ${id}\n`)
+            say(`deleted ${id}`)
             return 0
         }
 
@@ -482,7 +536,7 @@ async function run(argv: string[], io: Io): Promise<number> {
                 if (section === undefined && !values.before && !values.after) throw new UpgoError("give --section, --before, --after, --up or --down")
                 await updateGoals(projectDir(values), (file) => m.moveItem(file, id, { section, before: values.before, after: values.after }, day))
             }
-            io.out(`moved ${id}\n`)
+            say(`moved ${id}`)
             return 0
         }
 
@@ -493,7 +547,9 @@ async function run(argv: string[], io: Io): Promise<number> {
             const num = () => need(int("section number", positionals[0]), "section number")
             if (sub === "list") {
                 const file = readGoals(dir)
-                for (const s of file.sections) io.out(`${s.n}. ${s.title} (${file.items.filter((i) => i.section === s.n && isOpen(i)).length} open)\n`)
+                const open = (n: number) => file.items.filter((i) => i.section === n && isOpen(i)).length
+                if (pretty) io.out(tableView("Sections", file.project, file.sections.map((s) => [ui.dim(String(s.n)), s.title, ui.dim(`${open(s.n)} open`)]), "no sections"))
+                else for (const s of file.sections) io.out(`${s.n}. ${s.title} (${open(s.n)} open)\n`)
             } else if (sub === "add") {
                 let n = 0
                 await updateGoals(dir, (file) => {
@@ -501,16 +557,16 @@ async function run(argv: string[], io: Io): Promise<number> {
                     n = r.n
                     return r.file
                 })
-                io.out(`added section ${n}\n`)
+                say(`added section ${n}`)
             } else if (sub === "rename") {
                 await updateGoals(dir, (file) => m.renameSection(file, num(), need(positionals[1], "section title")))
-                io.out(`renamed section ${positionals[0]}\n`)
+                say(`renamed section ${positionals[0]}`)
             } else if (sub === "move") {
                 await updateGoals(dir, (file) => m.moveSection(file, num(), int("before", values.before) ?? null))
-                io.out(`moved section ${positionals[0]}\n`)
+                say(`moved section ${positionals[0]}`)
             } else if (sub === "delete") {
                 await updateGoals(dir, (file) => m.deleteSection(file, num()))
-                io.out(`deleted section ${positionals[0]}\n`)
+                say(`deleted section ${positionals[0]}`)
             } else throw new UpgoError("usage: upgo section list | add | rename | move | delete")
             return 0
         }
@@ -520,7 +576,9 @@ async function run(argv: string[], io: Io): Promise<number> {
             const { values, positionals } = parse(args, { ...TARGET, title: { type: "string" }, body: { type: "string" }, id: { type: "string" } })
             const dir = projectDir(values)
             if (sub === "list") {
-                for (const t of readGoals(dir).traps) io.out(`\`${t.id}\` ${t.title}\n`)
+                const file = readGoals(dir)
+                if (pretty) io.out(tableView("Traps", file.project, file.traps.map((t) => [ui.dim(t.id), t.title]), "no traps"))
+                else for (const t of file.traps) io.out(`\`${t.id}\` ${t.title}\n`)
             } else if (sub === "add") {
                 let id = ""
                 await updateGoals(dir, (file) => {
@@ -528,15 +586,15 @@ async function run(argv: string[], io: Io): Promise<number> {
                     id = r.id
                     return r.file
                 })
-                io.out(`added trap ${id}\n`)
+                say(`added trap ${id}`)
             } else if (sub === "edit") {
                 const id = need(positionals[0], "trap id")
                 await updateGoals(dir, (file) => m.editTrap(file, id, { title: values.title, body: values.body === "" ? null : values.body }))
-                io.out(`edited trap ${id}\n`)
+                say(`edited trap ${id}`)
             } else if (sub === "delete") {
                 const id = need(positionals[0], "trap id")
                 await updateGoals(dir, (file) => m.deleteTrap(file, id))
-                io.out(`deleted trap ${id}\n`)
+                say(`deleted trap ${id}`)
             } else throw new UpgoError("usage: upgo trap list | add | edit | delete")
             return 0
         }
@@ -584,7 +642,7 @@ async function run(argv: string[], io: Io): Promise<number> {
                 } catch (e) {
                     throw new UpgoError(`${done}, but ${SUGGESTIONS} could not be updated (${(e as Error).message.split("\n")[0]}): run \`upgo suggestion delete ${ids.join(" ")}\``)
                 }
-                io.out(`${done}\n`)
+                say(done)
             }
             if (sub === "promote") {
                 const sid = need(positionals[0], "suggestion id")
@@ -617,11 +675,10 @@ async function run(argv: string[], io: Io): Promise<number> {
                 await unlist(ids, `dropped ${added.join(", ")}`)
             } else if (sub === "list") {
                 const list = readSuggestions(dir)
-                if (!list.length) io.out("no suggestions\n")
-                for (const s of list) {
-                    const hints = [s.section !== undefined && `§${s.section}`, s.size].filter(Boolean).join(", ")
-                    io.out(`\`${s.id}\` ${s.title}${hints ? ` (${hints})` : ""}\n`)
-                }
+                const hintsOf = (s: (typeof list)[number]) => [s.section !== undefined && `§${s.section}`, s.size].filter(Boolean).join(", ")
+                if (pretty) io.out(tableView("Suggestions", readGoals(dir).project, list.map((s) => [ui.dim(s.id), s.title, ui.dim(hintsOf(s))]), "no suggestions"))
+                else if (!list.length) io.out("no suggestions\n")
+                else for (const s of list) io.out(`\`${s.id}\` ${s.title}${hintsOf(s) ? ` (${hintsOf(s)})` : ""}\n`)
             } else if (sub === "context") {
                 io.out(contextText(readGoals(dir), readSuggestions(dir)))
             } else if (sub === "add") {
@@ -637,7 +694,7 @@ async function run(argv: string[], io: Io): Promise<number> {
                     id = r.id
                     return r.list
                 })
-                io.out(`suggested ${id}\n`)
+                say(`suggested ${id}`)
             } else if (sub === "edit") {
                 const sid = need(positionals[0], "suggestion id")
                 const clearable = ["body", "section", "size", "related"] as const
@@ -649,11 +706,11 @@ async function run(argv: string[], io: Io): Promise<number> {
                 for (const c of clear) patch[c] = null
                 if (!Object.keys(patch).length) throw new UpgoError("nothing to change")
                 await updateSuggestions(dir, (list) => editSuggestion(list, sid, patch))
-                io.out(`edited ${sid}\n`)
+                say(`edited ${sid}`)
             } else if (sub === "delete") {
                 need(positionals[0], "suggestion id")
                 await updateSuggestions(dir, (list) => removeSuggestions(list, positionals))
-                io.out(`deleted ${positionals.join(", ")}\n`)
+                say(`deleted ${positionals.join(", ")}`)
             } else throw new UpgoError("usage: upgo suggestion list | context | add | edit | delete | promote | drop")
             return 0
         }
@@ -662,7 +719,7 @@ async function run(argv: string[], io: Io): Promise<number> {
             const { values, positionals } = parse(rest, { ...TARGET, clear: { type: "boolean" } })
             const text = values.clear ? null : need(positionals[0], "purpose text")
             await updateGoals(projectDir(values), (file) => m.setPurpose(file, text))
-            io.out(text ? "purpose set\n" : "purpose cleared\n")
+            say(text ? "purpose set" : "purpose cleared")
             return 0
         }
 
@@ -671,15 +728,22 @@ async function run(argv: string[], io: Io): Promise<number> {
             const registry = readRegistry()
             const targets = values.all ? registry.map((e) => ({ id: e.id, path: e.path })) : [{ id: "", path: projectDir(values) }]
             let failed = 0
+            const count = (n: number) => `${n} issue${n === 1 ? "" : "s"}`
+            if (pretty) io.out(targets.length ? ui.heading("Check") : ui.empty(NO_PROJECTS))
             for (const t of targets) {
                 const name = t.id || basename(t.path)
-                if (values.fix) for (const f of await fixProject(t.path, day)) io.out(`fixed ${name}: ${f}\n`)
+                if (values.fix)
+                    for (const f of await fixProject(t.path, day)) io.out(pretty ? ui.line(`${ui.dim("[FIX ]")}  ${name}  ${ui.dim(f)}`) : `fixed ${name}: ${f}\n`)
                 const issues = checkProject(t.path, registry)
                 if (issues.length) {
                     failed++
-                    io.err(`${name}: ${issues.length} issue${issues.length === 1 ? "" : "s"}\n${issues.map((i) => `  - ${i}`).join("\n")}\n`)
-                } else io.out(`ok: ${name}\n`)
+                    if (pretty) io.err(ui.line(`${ui.tag.fail}  ${ui.bold(name)}  ${ui.dim(count(issues.length))}`) + issues.map((i) => ui.prose(`- ${i}`, undefined, 10)).join(""))
+                    else io.err(`${name}: ${count(issues.length)}\n${issues.map((i) => `  - ${i}`).join("\n")}\n`)
+                } else io.out(pretty ? ui.line(`${ui.tag.ok}  ${name}`) : `ok: ${name}\n`)
             }
+            if (pretty && targets.length > 1)
+                io.out(ui.rule() + ui.line(failed ? ui.yellow(`${failed} of ${targets.length} projects have issues.`) : ui.green(`All ${targets.length} projects valid.`)))
+            if (pretty && targets.length) io.out("\n")
             return failed ? 1 : 0
         }
 
@@ -687,7 +751,7 @@ async function run(argv: string[], io: Io): Promise<number> {
             const { values } = parse(rest, TARGET)
             const dir = projectDir(values)
             await updateGoals(dir, (file) => file)
-            io.out(`rendered ${join(dir, MD)}\n`)
+            say(`rendered ${join(dir, MD)}`)
             return 0
         }
 
@@ -712,7 +776,7 @@ async function run(argv: string[], io: Io): Promise<number> {
                 `${report.sections} sections, ${report.open} open, ${report.done} done, ${report.dropped} dropped, ${report.traps} traps`,
             ]
             if (report.skipped.length) lines.push(`skipped ${report.skipped.length}:`, ...report.skipped.map((s) => `  - ${s}`))
-            io.out(lines.join("\n") + "\n")
+            say(lines.join("\n"))
             return 0
         }
 
@@ -721,7 +785,7 @@ async function run(argv: string[], io: Io): Promise<number> {
             const from = need(positionals[0], "project id")
             const to = need(positionals[1], "new project id")
             const { updated, failed } = await renameProject(from, to)
-            io.out(`renamed ${from} to ${to}\n${updated.length ? `updated refs in: ${updated.join(", ")}\n` : ""}`)
+            say(`renamed ${from} to ${to}${updated.length ? `\nupdated refs in: ${updated.join(", ")}` : ""}`)
             if (!failed.length) return 0
             io.err(`these projects could not be updated and may still point at \`${from}:\`, fix them and run \`upgo check --all\`:\n${failed.map((f) => `  - ${f}`).join("\n")}\n`)
             return 1
@@ -731,7 +795,7 @@ async function run(argv: string[], io: Io): Promise<number> {
             const { positionals } = parse(rest, {})
             const id = need(positionals[0], "project id")
             await forget(id)
-            io.out(`forgot ${id}\n`)
+            say(`forgot ${id}`)
             return 0
         }
 
@@ -741,7 +805,11 @@ async function run(argv: string[], io: Io): Promise<number> {
             if (key !== undefined && key !== "tray") throw new UpgoError(`unknown setting \`${key}\` (known: tray)`)
             if (value !== undefined && value !== "on" && value !== "off") throw new UpgoError("tray must be on or off")
             const settings = value ? await writeSettings({ tray: value === "on" }) : readSettings()
-            io.out(`tray ${settings.tray ? "on" : "off"}${process.platform === "win32" ? "" : " (only used on Windows)"}\n`)
+            const state = settings.tray ? "on" : "off"
+            const where = process.platform === "win32" ? "" : " (only used on Windows)"
+            if (!pretty) io.out(`tray ${state}${where}\n`)
+            else if (value) say(`tray ${state}${where}`)
+            else io.out(ui.heading("Config") + ui.line(`${ui.dim("tray")}  ${state}${ui.dim(where)}`) + "\n")
             return 0
         }
 
@@ -769,7 +837,7 @@ async function run(argv: string[], io: Io): Promise<number> {
                 process.disconnect?.()
                 const { showTray } = await import("./src/tray.ts")
                 showTray(url, () => process.exit(0))
-            } else io.out(`upgo dashboard on ${url} (Ctrl+C to stop)\n`)
+            } else io.out(pretty ? ui.empty(`dashboard on ${ui.bold(url)}   ${ui.dim("Ctrl+C to stop")}`) : `upgo dashboard on ${url} (Ctrl+C to stop)\n`)
             if (!values["no-open"]) openBrowser(url)
             await new Promise(() => {})
             return 0
@@ -806,7 +874,8 @@ async function launchHidden(args: string[], io: Io): Promise<number> {
     child.stderr!.destroy()
     if (child.connected) child.disconnect()
     child.unref()
-    io.out(`upgo dashboard on ${url}, in the tray (right-click its icon to quit)\n`)
+    const where = "in the tray (right-click its icon to quit)"
+    io.out(io.tty ? ui.empty(`dashboard on ${ui.bold(url)}   ${ui.dim(where)}`) : `upgo dashboard on ${url}, ${where}\n`)
     return 0
 }
 
@@ -825,7 +894,8 @@ export async function main(argv: string[], io: Io): Promise<number> {
         return await run(argv, io)
     } catch (e) {
         if (e instanceof UpgoError) {
-            io.err(`upgo: ${e.message}\n`)
+            const [first, ...more] = e.message.split("\n")
+            io.err(io.tty ? `\n  ${ui.errRed(`upgo: ${first}`)}\n${more.map((l) => `  ${l}\n`).join("")}\n` : `upgo: ${e.message}\n`)
             return 1
         }
         throw e
@@ -843,6 +913,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
         out: (s) => process.stdout.write(s),
         err: (s) => process.stderr.write(s),
         stdin: readStdin,
+        tty: process.stdout.isTTY,
     })
     process.exitCode = code
 }

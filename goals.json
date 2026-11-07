@@ -843,6 +843,18 @@
       "created": "2026-11-07",
       "updated": "2026-11-07",
       "note": "upgo config tray on|off plus ui --tray/--no-tray; PowerShell NotifyIcon, detached hidden relaunch."
+    },
+    {
+      "id": "terminal-output-in-the-upex-look",
+      "section": 1,
+      "title": "Terminal output in the upex look",
+      "body": "Headings, rules, aligned columns and colors when stdout is a TTY (src/ui.ts); piped output stays plain for agents.",
+      "phase": "now",
+      "status": "done",
+      "size": "M",
+      "created": "2026-11-07",
+      "updated": "2026-11-07",
+      "note": "src/ui.ts + pretty views in cli.ts; plain output unchanged; test in tests/cli.test.ts"
     }
   ]
 }

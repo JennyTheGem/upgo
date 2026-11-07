@@ -54,7 +54,7 @@ Agents follow the `upgo` skill. In practice:
 
 ## CLI
 
-`upgo help` lists everything. The common ones:
+`upgo help` lists everything. In a terminal the output gets the upex look (headings, aligned columns, colors; `NO_COLOR` turns colors off); piped output, what agents read, stays plain text. The common ones:
 
 ```
 upgo projects                                  registered projects, open counts

@@ -6,6 +6,8 @@ import { readRegistry } from "../src/core/registry.ts"
 import { readSuggestions, SUGGESTIONS } from "../src/core/suggestions.ts"
 import { render } from "../src/core/render.ts"
 import { GOALS, MD, readGoals } from "../src/core/store.ts"
+import { stripVTControlCharacters } from "node:util"
+import { main } from "../cli.ts"
 import { cli } from "./cliHarness.ts"
 import { fixture, isolateRegistry, makeProject, tempDir } from "./helpers.ts"
 
@@ -156,6 +158,27 @@ describe("init", () => {
         writeFileSync(join(dir, `${GOALS}.lock`), "someone")
         fails(cli(["init", "--no-hooks", "--purpose", "New"], { cwd: dir }), /locked by another writer/)
         expect(readGoals(dir).purpose).toBe("Demo project")
+    })
+})
+
+describe("terminal view", () => {
+    it("prints the upex-style layout on a tty", async () => {
+        const dir = await registered()
+        let out = ""
+        const io = { out: (s: string) => void (out += s), err: (s: string) => void (out += s), stdin: async () => "", tty: true }
+        const run = async (args: string[]) => {
+            out = ""
+            await main(args, io)
+            return stripVTControlCharacters(out)
+        }
+        const list = await run(["list", "--dir", dir])
+        expect(list).toMatch(/^\n {2}upgo {3}Goals {3}demo\n {2}─+\n {2}1 {2}Core\n {4}alpha +Alpha +now\n {4}beta +Beta +next +partial\n/)
+        expect(list).toMatch(/\n {2}─+\n {2}5 items\n\n$/)
+        expect(await run(["show", "beta", "--dir", dir])).toMatch(/^\n {2}upgo {3}Beta\n {2}─+\n {2}beta {3}§1 Core · next · partial/)
+        expect(await run(["section", "list", "--dir", dir])).toMatch(/\n {2}1 {2}Core {3}3 open\n/)
+        expect(await run(["help"])).toMatch(/\n {2}Reading\n {4}upgo list /)
+        expect(await run(["done", "alpha", "--dir", dir])).toBe("  done alpha\n")
+        expect(await run(["show", "nope", "--dir", dir])).toMatch(/^\n {2}upgo: no item `nope`/)
     })
 })
 
