@@ -1,6 +1,6 @@
 import { isOpenStatus, type Phase, type Size, type Status } from "../../../src/core/vocab.ts"
 import type { GoalsFile, Item, Section } from "../../../src/core/schema.ts"
-import { percentDone } from "../../../src/core/summary.ts"
+import { percentDone, withArchived } from "../../../src/core/summary.ts"
 
 export type Filters = {
     phases: Phase[]
@@ -45,15 +45,17 @@ export function scopesIn(file: GoalsFile): string[] {
 }
 
 // A closed section (no open items) still shows, collapsed, unless a narrowing filter finds nothing in it.
-export function groupItems(file: GoalsFile, f: Filters): Group[] {
+// `archived` items count toward done and percent only.
+export function groupItems(file: GoalsFile, f: Filters, archived: Item[] = []): Group[] {
     const narrowed = isNarrowed(f)
     return file.sections
         .filter((s) => hit(f.sections, s.n))
         .map((section) => {
             const mine = file.items.filter((i) => i.section === section.n)
+            const counted = withArchived(mine, archived.filter((i) => i.section === section.n))
             const open = mine.filter((i) => isOpenStatus(i.status)).length
-            const done = mine.filter((i) => i.status === "done").length
-            return { section, items: mine.filter((i) => matches(i, f)), closed: open === 0, open, done, percent: percentDone(mine) }
+            const done = counted.filter((i) => i.status === "done").length
+            return { section, items: mine.filter((i) => matches(i, f)), closed: open === 0, open, done, percent: percentDone(counted) }
         })
         .filter((g) => g.items.length || (g.closed && !narrowed))
 }

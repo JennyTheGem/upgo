@@ -8,7 +8,7 @@ import { formatIssues, type GoalsFile, type Item, type Suggestion } from "../../
 import { summarize } from "../../src/core/summary.ts"
 import { localIssues } from "../../src/core/rules.ts"
 
-export type FakeProject = { path: string; file?: GoalsFile; suggestions?: Suggestion[]; suggestionsError?: string; error?: string; details?: Record<string, string> }
+export type FakeProject = { path: string; file?: GoalsFile; archived?: Item[]; suggestions?: Suggestion[]; suggestionsError?: string; error?: string; details?: Record<string, string> }
 
 export const DAY = "2026-10-12"
 
@@ -76,7 +76,7 @@ export function fakeServer(initial: Record<string, FakeProject>) {
     let rejection: string | null = null
 
     const summary = (id: string, p: FakeProject) =>
-        p.file ? { id, path: p.path, ...summarize(p.file) } : { id, path: p.path, open: 0, done: 0, dropped: 0, percent: 0, phases: {}, now: [], next: [], recent: [], error: p.error }
+        p.file ? { id, path: p.path, ...summarize(p.file, p.archived) } : { id, path: p.path, open: 0, done: 0, dropped: 0, percent: 0, phases: {}, now: [], next: [], recent: [], error: p.error }
 
     const handle = async (url: string, init?: RequestInit): Promise<Reply> => {
         if (url === "/api/projects") return reply(200, { projects: Object.entries(state).map(([id, p]) => summary(id, p)) })
@@ -121,7 +121,7 @@ export function fakeServer(initial: Record<string, FakeProject>) {
             return text === undefined ? reply(404, { error: "no detail file" }) : reply(200, { path: `${p.path}/detail.md`, text })
         }
         if (p.error) return reply(500, { error: p.error })
-        return reply(200, { id, path: p.path, file: p.file, suggestions: p.suggestions ?? [], suggestionsError: p.suggestionsError })
+        return reply(200, { id, path: p.path, file: p.file, archived: p.archived ?? [], suggestions: p.suggestions ?? [], suggestionsError: p.suggestionsError })
     }
 
     const fetch = vi.fn(handle)

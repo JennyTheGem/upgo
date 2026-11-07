@@ -280,7 +280,7 @@
       "title": "Dashboard counts archived done items",
       "body": "After upgo archive, project %, done counts and section bars only count goals.json, so a mostly done project drops toward 0%. Server should send archive counts and summarize/percentDone include them.",
       "phase": "next",
-      "status": "planned",
+      "status": "done",
       "size": "M",
       "pointers": {
         "files": [
@@ -289,7 +289,8 @@
         ]
       },
       "created": "2026-11-07",
-      "updated": "2026-11-07"
+      "updated": "2026-11-07",
+      "note": "summarize and groupItems take the archive; server sends archived items and watches goals-archive.json"
     },
     {
       "id": "related-chip-to-an-archived-item",
@@ -297,7 +298,7 @@
       "title": "Related chip to an archived item",
       "body": "A related chip pointing at an archived item toasts 'No item X in Y'. Show it as archived instead.",
       "phase": "later",
-      "status": "planned",
+      "status": "done",
       "size": "S",
       "pointers": {
         "files": [
@@ -305,7 +306,8 @@
         ]
       },
       "created": "2026-11-07",
-      "updated": "2026-11-07"
+      "updated": "2026-11-07",
+      "note": "jump and focus toast 'X is archived: upgo show p:X' instead of an error"
     },
     {
       "id": "migrate-rest",

@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync, watch, type FSWatcher } from "node:
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path"
 import { pathToFileURL } from "node:url"
 import { z } from "zod"
+import { ARCHIVE, tryArchive } from "./src/core/archive.ts"
 import { applyOp, opSchema } from "./src/core/ops.ts"
 import { forget, readRegistry, registryPath, UPGO_DIR, type Entry } from "./src/core/registry.ts"
 import { formatIssues, PHASES, slug, suggestionSchema } from "./src/core/schema.ts"
@@ -18,7 +19,7 @@ const HOST = "127.0.0.1"
 const EMPTY_PHASES = Object.fromEntries(PHASES.map((p) => [p, 0]))
 const DEV_PORT = 5173
 const MAX_BODY = 1_000_000
-const WATCHED = [GOALS, SUGGESTIONS]
+const WATCHED = [GOALS, SUGGESTIONS, ARCHIVE]
 const suggestionsBody = z.union([
     z.strictObject({ dismiss: z.array(slug).min(1) }),
     z.strictObject({ restore: z.array(z.strictObject({ at: z.number().int().nonnegative(), suggestion: suggestionSchema })).min(1) }),
@@ -148,7 +149,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
         if (method === "GET" && parts.length === 1 && parts[0] === "projects") {
             const projects = readRegistry().map((e) => {
                 try {
-                    return { id: e.id, path: e.path, ...summarize(readGoals(e.path)) }
+                    return { id: e.id, path: e.path, ...summarize(readGoals(e.path), tryArchive(e.path).archived) }
                 } catch (err) {
                     return { id: e.id, path: e.path, open: 0, done: 0, dropped: 0, percent: 0, phases: EMPTY_PHASES, now: [], next: [], recent: [], error: (err as Error).message }
                 }
@@ -160,7 +161,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
         const entry = entryFor(parts[1])
         if (!entry) return fail(res, 404, `no registered project \`${parts[1]}\``)
 
-        if (method === "GET" && parts.length === 2) return send(res, 200, { id: entry.id, path: entry.path, file: readGoals(entry.path), ...trySuggestions(entry.path) })
+        if (method === "GET" && parts.length === 2) return send(res, 200, { id: entry.id, path: entry.path, file: readGoals(entry.path), archived: tryArchive(entry.path).archived, ...trySuggestions(entry.path) })
 
         if (method === "GET" && parts.length === 4 && parts[2] === "detail") {
             const item = readGoals(entry.path).items.find((i) => i.id === parts[3])

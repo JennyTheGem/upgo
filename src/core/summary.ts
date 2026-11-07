@@ -15,11 +15,18 @@ export function percentDone(items: Item[]) {
     return total ? Math.round((done / total) * 100) : 0
 }
 
+// Live plus archived items, minus exact copies an interrupted `upgo archive` left in both files.
+export function withArchived(items: Item[], archived: Item[]) {
+    const live = new Set(items.map((i) => JSON.stringify(i)))
+    return [...items, ...archived.filter((i) => !live.has(JSON.stringify(i)))]
+}
+
 // What the dashboard shows per project: counts, open items per phase, the open `now` and `next` items, the last
-// change and the latest done items. Zod-free for the web bundle.
-export function summarize(file: GoalsFile) {
+// change and the latest done items. `archived` items count toward done and percent. Zod-free for the web bundle.
+export function summarize(file: GoalsFile, archived: Item[] = []) {
+    const all = withArchived(file.items, archived)
     const open = file.items.filter((i) => isOpenStatus(i.status))
-    const count = (s: string) => file.items.filter((i) => i.status === s).length
+    const count = (s: string) => all.filter((i) => i.status === s).length
     const phases = Object.fromEntries(PHASES.map((p) => [p, open.filter((i) => i.phase === p).length])) as Record<Phase, number>
     const inPhase = (p: Phase) => open.filter((i) => i.phase === p).map(({ id, title, status, size }) => ({ id, title, status, size }))
     const updated = file.items.reduce((d, i) => (i.updated > d ? i.updated : d), "") || undefined
@@ -28,5 +35,5 @@ export function summarize(file: GoalsFile) {
         .sort((a, b) => b.updated.localeCompare(a.updated))
         .slice(0, RECENT)
         .map(({ id, title, note, updated }) => ({ id, title, note, updated }))
-    return { purpose: file.purpose, open: open.length, done: count("done"), dropped: count("dropped"), percent: percentDone(file.items), phases, now: inPhase("now"), next: inPhase("next"), updated, recent }
+    return { purpose: file.purpose, open: open.length, done: count("done"), dropped: count("dropped"), percent: percentDone(all), phases, now: inPhase("now"), next: inPhase("next"), updated, recent }
 }

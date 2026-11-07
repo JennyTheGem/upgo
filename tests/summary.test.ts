@@ -33,4 +33,11 @@ describe("summarize", () => {
         expect(s.recent[1]).toEqual({ id: "a", title: "X", note: "old", updated: "2026-01-01" })
         expect(summarize({ version: 1, project: "p", sections: [], traps: [], items: [] }).updated).toBeUndefined()
     })
+
+    it("counts archived items as done", () => {
+        const s = summarize({ version: 1, project: "p", sections: [], traps: [], items: [item("planned", "S")] }, [item("done", "L"), item("done", "L")])
+        expect([s.done, s.open, s.percent, s.recent]).toEqual([2, 1, 89, []])
+        // A crashed archive run leaves the same item in both files: count it once.
+        expect(summarize({ version: 1, project: "p", sections: [], traps: [], items: [item("done", "L")] }, [item("done", "L")]).done).toBe(1)
+    })
 })

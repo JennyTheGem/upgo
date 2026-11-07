@@ -6,15 +6,10 @@ Structured goals for every project: a validating CLI for agents, a slim generate
 
 Open work only. Full item: `upgo show <id>`. Any slice: `upgo list --phase later,wayLater,maybe`, `--status done,dropped`, `--section <n>`, `--search <text>`.
 
-Closed sections: §3 Rollout
+Closed sections: §2 Dashboard · §3 Rollout
 
 ## 1. CLI and core
 
 - `upgo-check-fix` upgo check --fix (later)
 - `fuzzy-id-matching` Fuzzy id matching (later)
 - Plus 3 maybe: `upgo list --section 1 --phase maybe`
-
-## 2. Dashboard
-
-- `dashboard-counts-archived-done-items` Dashboard counts archived done items (next)
-- `related-chip-to-an-archived-item` Related chip to an archived item (later)

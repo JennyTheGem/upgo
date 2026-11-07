@@ -87,14 +87,18 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
     const refocus = useRef<string | null>(null)
 
     const file = data?.file
-    const groups = useMemo(() => (file ? groupItems(file, filters) : []), [file, filters])
+    const archived = data?.archived
+    const groups = useMemo(() => (file ? groupItems(file, filters, archived) : []), [file, filters, archived])
+    // A ref to an item that only lives in the archive now.
+    const missing = (itemId: string) =>
+        archived?.some((i) => i.id === itemId) ? toast.info(`${itemId} is archived: upgo show ${id}:${itemId}`) : toast.error(`No item ${itemId} in ${id}`)
     const visible = groups.flatMap((g) => g.items)
 
     const loaded = !!file
     useEffect(() => {
         if (!loaded || !focus) return
         const item = file?.items.find((i) => i.id === focus)
-        if (!item) return void toast.error(`No item ${focus} in ${id}`)
+        if (!item) return void missing(focus)
         // A done item (from the tour's recently done) only shows with closed items on. Runs once, so no cascade.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         if (!isOpenStatus(item.status)) setFilters({ ...NO_FILTERS, showClosed: true })
@@ -143,7 +147,7 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
     // A pick from the setlist or a related chip: drop filters that hide it, expand it, scroll to it.
     const jump = (itemId: string) => {
         const item = file.items.find((i) => i.id === itemId)
-        if (!item) return void toast.error(`No item ${itemId} in ${id}`)
+        if (!item) return void missing(itemId)
         setTab("goals")
         if (!visible.includes(item)) setFilters({ ...NO_FILTERS, showClosed: !isOpenStatus(item.status) })
         setExpanded((s) => toggled(s, [itemId], true))
@@ -311,7 +315,7 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
     return (
         <section className="projectPageContainer outfit">
             <Stage
-                summary={summarize(file)}
+                summary={summarize(file, data.archived)}
                 onPick={jump}
                 onPromote={(itemId) => run({ op: "edit", id: itemId, patch: { phase: "now" } }, true)}
                 title={<h1 className="stageHeading truncate">{data.id}</h1>}

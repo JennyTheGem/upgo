@@ -26,6 +26,11 @@ describe("groupItems", () => {
             [4, [], true],
         ])
     })
+
+    it("counts archived items toward a section's done and percent only", () => {
+        const groups = groupItems(alpha(), NO_FILTERS, [item("gone", 3, "Gone", { status: "done", size: "S" })])
+        expect(groups.find((g) => g.section.n === 3)).toMatchObject({ items: [], done: 1, open: 0, percent: 100 })
+    })
 })
 
 describe("item form", () => {

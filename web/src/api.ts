@@ -21,8 +21,8 @@ export type ProjectSummary = {
     recent: DoneItem[]
     error?: string
 }
-// `suggestionsError`: suggestions.json is broken, the goals still load.
-export type ProjectData = { id: string; path: string; file: GoalsFile; suggestions: Suggestion[]; suggestionsError?: string }
+// `archived`: done items moved to goals-archive.json. `suggestionsError`: suggestions.json is broken, the goals still load.
+export type ProjectData = { id: string; path: string; file: GoalsFile; archived: Item[]; suggestions: Suggestion[]; suggestionsError?: string }
 export type ServerEvent = { type: "project"; id: string } | { type: "projects" }
 
 export class ApiError extends Error {
