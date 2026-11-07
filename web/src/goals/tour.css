@@ -184,5 +184,5 @@ html[data-reduce-motion] .tourRecentItem {
 
 .tourSpark > .tourSparkEmpty {
     height: 2px;
-    background-color: var(--fill-subtle);
+    background-color: color-mix(in srgb, var(--color-white) 20%, transparent);
 }
