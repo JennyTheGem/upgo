@@ -248,6 +248,11 @@ export async function startServer(opts: ServerOptions = {}): Promise<RunningServ
     await new Promise<void>((ok, no) => {
         server.once("error", no)
         server.listen(port, HOST, () => ok())
+    }).catch((e: unknown) => {
+        // Open watchers would keep a failed `upgo ui` alive.
+        regWatcher?.close()
+        for (const w of watchers.values()) w.close()
+        throw e
     })
     port = (server.address() as { port: number }).port
     const heartbeat = setInterval(() => {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs, type ParseArgsConfig } from "node:util"
-import { execFileSync } from "node:child_process"
+import { execFileSync, spawn } from "node:child_process"
 import { existsSync, readFileSync, realpathSync } from "node:fs"
 import fsp from "node:fs/promises"
 import { basename, dirname, join, relative, resolve } from "node:path"
@@ -12,6 +12,7 @@ import { checkRegistrable, findEntry, forget, readRegistry, register } from "./s
 import { isManaged, isOpen, PHASE_LABEL, PHASES, POINTER_KEYS, SIZES, STATUSES, type GoalsFile, type Item, type Pointers } from "./src/core/schema.ts"
 import { renameProject } from "./src/core/rename.ts"
 import { resolveId } from "./src/core/similar.ts"
+import { readSettings, writeSettings } from "./src/core/settings.ts"
 import { findProjectDir, GOALS, MD, readGoals, saveGoals, serialize, updateGoals, writeAtomic } from "./src/core/store.ts"
 import {
     addSuggestion,
@@ -67,7 +68,8 @@ Setup and checks
   upgo import <goals.md> [--completed path] [--out file] [--id slug] [--force]
   upgo rename <id> <new-id>           change a project's id, in the registry, its files and every related ref to it
   upgo forget <id>                    drop a project from the registry
-  upgo ui [--port 4141] [--no-open]   start the dashboard
+  upgo ui [--port 4141] [--no-open] [--tray | --no-tray]   start the dashboard; --tray (Windows) runs it hidden with a tray icon
+  upgo config [tray on|off]           show or change settings; tray on makes \`upgo ui\` go to the tray by default
 
 Every command takes --dir <path> or --project <id> to target another project.
 show, edit, done, drop and reopen take a unique id prefix too; a typo suggests the closest id.
@@ -733,11 +735,41 @@ async function run(argv: string[], io: Io): Promise<number> {
             return 0
         }
 
+        case "config": {
+            const { positionals } = parse(rest, {})
+            const [key, value] = positionals
+            if (key !== undefined && key !== "tray") throw new UpgoError(`unknown setting \`${key}\` (known: tray)`)
+            if (value !== undefined && value !== "on" && value !== "off") throw new UpgoError("tray must be on or off")
+            const settings = value ? await writeSettings({ tray: value === "on" }) : readSettings()
+            io.out(`tray ${settings.tray ? "on" : "off"}${process.platform === "win32" ? "" : " (only used on Windows)"}\n`)
+            return 0
+        }
+
         case "ui": {
-            const { values } = parse(rest, { port: { type: "string" }, "no-open": { type: "boolean" } })
+            const { values } = parse(rest, {
+                port: { type: "string" },
+                "no-open": { type: "boolean" },
+                tray: { type: "boolean" },
+                "no-tray": { type: "boolean" },
+            })
+            const port = int("port", values.port) ?? 4141
+            const hidden = process.env.UPGO_TRAY_CHILD === "1"
+            delete process.env.UPGO_TRAY_CHILD
+            const tray = process.platform === "win32" && !values["no-tray"] && (values.tray || readSettings().tray === true)
+            if (tray && !hidden) return launchHidden(rest, io)
             const { startServer } = await import("./server.ts")
-            const { url } = await startServer({ port: int("port", values.port) ?? 4141 })
-            io.out(`upgo dashboard on ${url} (Ctrl+C to stop)\n`)
+            let url: string
+            try {
+                ;({ url } = await startServer({ port }))
+            } catch (e) {
+                throw new UpgoError(`could not start the dashboard: ${(e as Error).message}`)
+            }
+            if (hidden) {
+                process.send?.({ url })
+                process.disconnect?.()
+                const { showTray } = await import("./src/tray.ts")
+                showTray(url, () => process.exit(0))
+            } else io.out(`upgo dashboard on ${url} (Ctrl+C to stop)\n`)
             if (!values["no-open"]) openBrowser(url)
             await new Promise(() => {})
             return 0
@@ -748,11 +780,41 @@ async function run(argv: string[], io: Io): Promise<number> {
     }
 }
 
+// Reruns `upgo ui` detached and windowless, so the console that started it can close.
+async function launchHidden(args: string[], io: Io): Promise<number> {
+    const child = spawn(process.execPath, [...process.execArgv, CLI, "ui", ...args], {
+        detached: true,
+        windowsHide: true,
+        stdio: ["ignore", "ignore", "pipe", "ipc"],
+        env: { ...process.env, UPGO_TRAY_CHILD: "1" },
+    })
+    let stderr = ""
+    child.stderr!.on("data", (c: Buffer) => (stderr += c.toString()))
+    const url = await new Promise<string | undefined>((ok) => {
+        child.once("message", (m) => ok((m as { url: string }).url))
+        // close, not exit: stderr may still be unread at exit.
+        child.once("close", () => ok(undefined))
+        child.once("error", (e) => {
+            stderr += `upgo: ${e.message}\n`
+            ok(undefined)
+        })
+    })
+    if (!url) {
+        io.err(stderr || "upgo: the tray dashboard stopped while starting, try `upgo ui --no-tray`\n")
+        return 1
+    }
+    child.stderr!.destroy()
+    if (child.connected) child.disconnect()
+    child.unref()
+    io.out(`upgo dashboard on ${url}, in the tray (right-click its icon to quit)\n`)
+    return 0
+}
+
 function openBrowser(url: string): void {
     const [bin, args] =
         process.platform === "win32" ? ["cmd", ["/c", "start", "", url]] : process.platform === "darwin" ? ["open", [url]] : ["xdg-open", [url]]
     try {
-        execFileSync(bin, args as string[], { stdio: "ignore" })
+        execFileSync(bin, args as string[], { stdio: "ignore", windowsHide: true })
     } catch {
         // The url is printed either way.
     }

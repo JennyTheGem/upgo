@@ -831,6 +831,18 @@
       "created": "2026-11-07",
       "updated": "2026-11-07",
       "note": "upgo rename <id> <new-id> plus dashboard Rename menu entry; repoints registry, own files and refs in other projects"
+    },
+    {
+      "id": "tray-mode-for-upgo-ui-on-windows",
+      "section": 1,
+      "title": "Tray mode for upgo ui on Windows",
+      "body": "upgo config tray on makes upgo ui run hidden with a tray icon instead of a console window.",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-07",
+      "updated": "2026-11-07",
+      "note": "upgo config tray on|off plus ui --tray/--no-tray; PowerShell NotifyIcon, detached hidden relaunch."
     }
   ]
 }

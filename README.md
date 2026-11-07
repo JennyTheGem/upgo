@@ -21,6 +21,8 @@ Then `upgo help`. The agent skill ships in the package: copy `$(npm root -g)/@up
 
 `upgo ui` serves `http://127.0.0.1:4141` and opens it. It only listens on this machine.
 
+On Windows, `upgo config tray on` makes `upgo ui` run hidden with a tray icon instead of a console window: click it to open the dashboard, right-click for Quit. `upgo ui --tray` / `--no-tray` overrides it once. Settings live in `~/.upgo/settings.json`.
+
 - **Projects**: pick one in the left sidebar. Every registered project shows with its open count; finished ones sit in their own Finished list below.
 - **Tour**: full cards for favorites and projects with now items (counts, setlist, a small bar strip of done items per week over the last 8 weeks), one row per idle project with its first next item, one strip for finished projects, then recently done.
 - **Favorites**: star a project in its header (or its right-click menu) to keep it on top of the list and always a full card in the Tour (saved in this browser).
@@ -74,7 +76,8 @@ upgo suggestion drop <id...> --reason "..." [--section 1]   save as dropped goal
 upgo check [--all] [--fix]                     validate one or every project; --fix repairs missing dates and a stale goals.md if goals.json is otherwise valid
 upgo render                                    rewrite goals.md from goals.json
 upgo archive [--months 6]                      move done items not updated for N months to goals-archive.json
-upgo ui [--port 4141] [--no-open]
+upgo ui [--port 4141] [--no-open] [--tray | --no-tray]
+upgo config [tray on|off]                      show or change settings
 ```
 
 Every command works from inside the project folder, or anywhere with `--dir <path>` / `--project <id>`. `show`, `edit`, `done`, `drop` and `reopen` also take a unique id prefix, and a typo suggests the closest id.

@@ -518,6 +518,17 @@ describe("check, render, forget", () => {
     })
 })
 
+describe("config", () => {
+    it("shows, saves and validates the tray setting", () => {
+        const cwd = tempDir()
+        expect(ok(cli(["config"], { cwd }))).toMatch(/^tray off/)
+        expect(ok(cli(["config", "tray", "on"], { cwd }))).toMatch(/^tray on/)
+        expect(ok(cli(["config", "tray"], { cwd }))).toMatch(/^tray on/)
+        fails(cli(["config", "tray", "yes"], { cwd }), /on or off/)
+        fails(cli(["config", "theme"], { cwd }), /unknown setting/)
+    })
+})
+
 describe("ui", () => {
     it("starts the dashboard server on the given port without opening a browser", async () => {
         const { spawn } = await import("node:child_process")
