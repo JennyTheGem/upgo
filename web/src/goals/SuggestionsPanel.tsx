@@ -6,6 +6,8 @@ import Chip from "../primitives/chip/Chip.tsx"
 import EmptyState from "../primitives/emptyState/EmptyState.tsx"
 import ErrorState from "../primitives/errorState/ErrorState.tsx"
 import SelectionBar from "../primitives/selectionBar/SelectionBar.tsx"
+import { readPref, writePref } from "../utils/storage.ts"
+import { daysSince } from "./counts.ts"
 import { copyForAgent } from "./format.ts"
 import { RelatedChips } from "./ItemDetail.tsx"
 import Markdown from "./Markdown.tsx"
@@ -34,10 +36,30 @@ const toggled = (set: Set<string>, id: string) => {
     return next
 }
 
+const SORT = "upgo:suggestionSort"
+
+// Newest day first; same day, the later added first.
+const newestFirst = (list: Suggestion[]) => [...list].reverse().sort((a, b) => b.created.localeCompare(a.created))
+
+// Recency batches: the first whose max days fits.
+const BATCHES: [number, string][] = [
+    [0, "Today"],
+    [1, "Yesterday"],
+    [6, "This week"],
+    [30, "This month"],
+    [Infinity, "Older"],
+]
+const byRecency = (list: Suggestion[]) => {
+    const sorted = newestFirst(list)
+    const batch = (s: Suggestion) => BATCHES.find(([max]) => daysSince(s.created) <= max)![1]
+    return BATCHES.map(([, title]) => ({ title, list: sorted.filter((s) => batch(s) === title) }))
+}
+
 // Agents add these with `upgo suggestion add`. Rows look and act like goal rows.
 export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt, onDismiss, onDrop, onOpenRelated, sections, dropped, onOpenGoal }: Props) {
     const [ticked, setTicked] = useState<Set<string>>(new Set())
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
+    const [newest, setNewest] = useState(() => readPref(SORT) === "newest")
     const chosen = suggestions.filter((s) => ticked.has(s.id))
     const adoptTitle = canAdopt ? undefined : "Add a section first"
     const adoptHint = "Add to goals (Shift+click: straight to Later)"
@@ -130,25 +152,47 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
     }
 
     // Grouped like the goals screen, in section order; no or unknown section goes last.
-    const groups: { section?: Section; list: Suggestion[] }[] = sections.map((section) => ({ section, list: suggestions.filter((s) => s.section === section.n) }))
-    groups.push({ list: suggestions.filter((s) => !sections.some((x) => x.n === s.section)) })
+    // Newest: across sections, in recency batches.
+    const groups: { section?: Section; title?: string; list: Suggestion[] }[] = newest
+        ? byRecency(suggestions)
+        : sections.map((section) => ({ section, list: suggestions.filter((s) => s.section === section.n) }))
+    if (!newest) groups.push({ list: suggestions.filter((s) => !sections.some((x) => x.n === s.section)) })
+    const sortBy = (next: boolean) => {
+        setNewest(next)
+        writePref(SORT, next ? "newest" : "section")
+    }
 
     return (
         <>
             <div className="suggestionGroups" role="region" aria-label="Suggestions">
-                <p className="suggestionHint caption op-70">Drop keeps it as a dropped goal so agents never suggest it again. Delete just removes it.</p>
+                <div className="suggestionHint">
+                    <p className="caption op-70">Drop keeps it as a dropped goal so agents never suggest it again. Delete just removes it.</p>
+                    <span className="suggestionSort" role="group" aria-label="Sort suggestions">
+                        {[false, true].map((n) => (
+                            <Button
+                                key={String(n)}
+                                variant="switcherOption"
+                                className={newest === n ? "buttonSwitcherOption--active" : ""}
+                                aria-pressed={newest === n}
+                                onClick={() => sortBy(n)}
+                            >
+                                {n ? "Newest" : "By section"}
+                            </Button>
+                        ))}
+                    </span>
+                </div>
                 {groups
                     .filter((g) => g.list.length)
-                    .map(({ section, list }) => (
+                    .map(({ section, title, list }) => (
                         <section
-                            key={section?.n ?? "none"}
+                            key={section?.n ?? title ?? "none"}
                             className="uiContentContainer sectionBlock"
-                            aria-label={section ? `Section ${section.n}: ${section.title}` : "No section"}
+                            aria-label={section ? `Section ${section.n}: ${section.title}` : (title ?? "No section")}
                         >
                             <header className="sectionHeader">
                                 <span className="sectionTape">
                                     {section && <span className="sectionNumber tabular">§{section.n}</span>}
-                                    <h2 className="sectionTitle truncate">{section?.title ?? "No section"}</h2>
+                                    <h2 className="sectionTitle truncate">{section?.title ?? title ?? "No section"}</h2>
                                 </span>
                                 <span className="caption tabular op-70 no-wrap">{list.length} open</span>
                             </header>

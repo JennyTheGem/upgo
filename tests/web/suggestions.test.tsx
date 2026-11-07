@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { screen, waitFor, within } from "@testing-library/react"
 import type userEvent from "@testing-library/user-event"
+import { today } from "../../src/core/util.ts"
 import { DAY, projects, setup, waitForRows } from "./helpers.tsx"
 
 afterEach(() => {
@@ -210,5 +211,20 @@ describe("suggestions tab", () => {
         expect(panel.querySelector('[data-suggestion-id="offline"]')).not.toHaveTextContent("Dropped before")
         await user.click(within(row).getByRole("button", { name: "Old thing" }))
         expect(screen.getByRole("tab", { name: "Goals", selected: true })).toBeInTheDocument()
+    })
+
+    it("sorts newest first across sections and remembers it", async () => {
+        const initial = withSuggestions()
+        initial.alpha.suggestions!.push({ id: "older", title: "Older", created: "2000-01-01" }, { id: "fresh", title: "Fresh", created: today() })
+        const { user } = await setup(initial)
+        const panel = await openTab(user)
+        const ids = () => [...panel.querySelectorAll("[data-suggestion-id]")].map((r) => r.getAttribute("data-suggestion-id"))
+        await user.click(screen.getByRole("button", { name: "Newest" }))
+        expect(ids()).toEqual(["fresh", "offline", "dark-mode", "older"])
+        expect(within(panel).getByRole("region", { name: "Today" })).toHaveTextContent("Fresh")
+        expect(within(panel).getByRole("region", { name: "Older" })).toHaveTextContent("Older")
+        expect(localStorage.getItem("upgo:suggestionSort")).toBe("newest")
+        await user.click(screen.getByRole("button", { name: "By section" }))
+        expect(screen.getByRole("button", { name: "By section" })).toHaveAttribute("aria-pressed", "true")
     })
 })

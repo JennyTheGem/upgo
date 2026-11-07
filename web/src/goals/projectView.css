@@ -94,8 +94,21 @@
 }
 
 .suggestionHint {
-    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap-sm);
     padding: 0 var(--padding-xs);
+}
+
+.suggestionHint p {
+    margin: 0;
+}
+
+.suggestionSort {
+    display: flex;
+    gap: var(--gap-xs);
 }
 
 /* Always shown, above the expanded detail. */
