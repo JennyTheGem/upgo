@@ -97,15 +97,18 @@ export default function Tour({ projects, onOpen, onChanged }: { projects: Projec
                         ) : (
                             <>
                                 <CountBar counts={p} />
-                                <span className="caption-small tabular op-70">
-                                    {p.open} open{p.phases.next ? ` · ${p.phases.next} next` : ""}
-                                    {p.phases.later ? ` · ${p.phases.later} later` : ""}
-                                    {p.updated && (
-                                        <span className={!isFinished(p) && daysSince(p.updated) >= STALE_DAYS ? "tourStale" : undefined} title={p.updated}>
-                                            {` · changed ${ago(p.updated)}`}
-                                        </span>
-                                    )}
-                                </span>
+                                <div className="tourStats">
+                                    <span className="caption-small tabular op-70">
+                                        {p.open} open{p.phases.next ? ` · ${p.phases.next} next` : ""}
+                                        {p.phases.later ? ` · ${p.phases.later} later` : ""}
+                                        {p.updated && (
+                                            <span className={!isFinished(p) && daysSince(p.updated) >= STALE_DAYS ? "tourStale" : undefined} title={p.updated}>
+                                                {` · changed ${ago(p.updated)}`}
+                                            </span>
+                                        )}
+                                    </span>
+                                    {p.weekly && <Sparkline weeks={p.weekly} />}
+                                </div>
                                 <Setlist now={p.now} next={p.next} limit={5} onPick={(item) => onOpen(p.id, item)} onPromote={(item) => promote(p.id, item)} />
                             </>
                         )}
@@ -113,5 +116,19 @@ export default function Tour({ projects, onOpen, onChanged }: { projects: Projec
                 ))}
             </ul>
         </section>
+    )
+}
+
+// Done per week, oldest first, scaled to the busiest week.
+function Sparkline({ weeks }: { weeks: number[] }) {
+    const max = Math.max(1, ...weeks)
+    const total = weeks.reduce((n, w) => n + w, 0)
+    const label = `${total} done in the last ${weeks.length} weeks`
+    return (
+        <span className="tourSpark" role="img" aria-label={label} title={`${label}: ${weeks.join(", ")}`}>
+            {weeks.map((w, n) => (
+                <span key={n} className={w ? undefined : "tourSparkEmpty"} style={w ? { height: `${Math.max(20, (w / max) * 100)}%` } : undefined} />
+            ))}
+        </span>
     )
 }

@@ -19,6 +19,8 @@ export type ProjectSummary = {
     // Newest item date, YYYY-MM-DD.
     updated?: string
     recent: DoneItem[]
+    // Done per week, oldest first. Missing when the project failed to load.
+    weekly?: number[]
     error?: string
 }
 // `archived`: done items moved to goals-archive.json. `suggestionsError`: suggestions.json is broken, the goals still load.

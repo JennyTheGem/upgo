@@ -22,6 +22,7 @@ Then `upgo help`. The agent skill ships in the package: copy `$(npm root -g)/@up
 `upgo ui` serves `http://127.0.0.1:4141` and opens it. It only listens on this machine.
 
 - **Projects**: pick one in the left sidebar. Every registered project shows with its open count.
+- **Tour**: every project as a card with its counts, its now and next items and a small bar strip of done items per week over the last 8 weeks.
 - **Filters** (inside the project): search (id, title, body, pointers), Phase, Status, Section, Size, Scope. Done and dropped items stay hidden until **Show done/dropped** is on. **Clear filters** resets.
 - **Read**: click an item's title to expand its body, pointers and related refs; a button loads its detail file.
 - **Change**: right-click a row or use its ⋮ menu: edit, phase, status, done (optional note), drop (asks a reason, with presets), reopen, move up/down, copy, delete.

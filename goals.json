@@ -310,6 +310,18 @@
       "note": "jump and focus toast 'X is archived: upgo show p:X' instead of an error"
     },
     {
+      "id": "weekly-done-sparkline-per-project",
+      "section": 2,
+      "title": "Weekly done sparkline per project",
+      "body": "A tiny activity strip on each project card so momentum is visible at a glance.",
+      "phase": "now",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-07",
+      "updated": "2026-11-07",
+      "note": "Tour cards show done per week for the last 8 weeks (summary.weekly)"
+    },
+    {
       "id": "migrate-rest",
       "section": 3,
       "title": "Migrate remaining repos to upgo",

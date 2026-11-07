@@ -159,3 +159,30 @@
 html[data-reduce-motion] .tourRecentItem {
     transition: none;
 }
+
+.tourStats {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--gap-md);
+}
+
+/* Weekly done bars; an empty week is a baseline tick. */
+.tourSpark {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 16px;
+}
+
+.tourSpark > span {
+    width: 4px;
+    border-radius: 1px;
+    background-color: var(--phase-done);
+}
+
+.tourSpark > .tourSparkEmpty {
+    height: 2px;
+    background-color: var(--fill-subtle);
+}

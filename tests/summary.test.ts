@@ -1,5 +1,5 @@
 import type { Item } from "../src/core/schema.ts"
-import { percentDone, summarize } from "../src/core/summary.ts"
+import { percentDone, summarize, weeklyDone } from "../src/core/summary.ts"
 import { D } from "./helpers.ts"
 
 const item = (status: Item["status"], size?: Item["size"], phase: Item["phase"] = "now"): Item => ({ id: "x", section: 1, title: "X", phase, status, created: D, updated: D, ...(size ? { size } : {}) })
@@ -39,5 +39,15 @@ describe("summarize", () => {
         expect([s.done, s.open, s.percent, s.recent]).toEqual([2, 1, 89, []])
         // A crashed archive run leaves the same item in both files: count it once.
         expect(summarize({ version: 1, project: "p", sections: [], traps: [], items: [item("done", "L")] }, [item("done", "L")]).done).toBe(1)
+    })
+})
+
+describe("weeklyDone", () => {
+    it("buckets done items into 7-day windows ending today, oldest first", () => {
+        const done = (updated: string, status: Item["status"] = "done"): Item => ({ ...item(status), updated })
+        const now = new Date(2026, 10, 7)
+        const items = [done("2026-11-07"), done("2026-11-01"), done("2026-10-31"), done("2026-09-13"), done("2026-09-12"), done("2026-11-07", "planned")]
+        expect(weeklyDone(items, now)).toEqual([1, 0, 0, 0, 0, 0, 1, 2])
+        expect(summarize({ version: 1, project: "p", sections: [], traps: [], items: [] }, [done("2026-11-06")], now).weekly).toEqual([0, 0, 0, 0, 0, 0, 0, 1])
     })
 })
