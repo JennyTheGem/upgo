@@ -68,13 +68,13 @@ upgo suggestion list | add "Title" --body "..." [--section 1] [--size M] [--rela
 upgo suggestion edit <id> [--title t] [--body ..] [--section 1] [--size M] [--related ..] [--clear body,section,size,related]
 upgo suggestion promote <id> [--section 1] [--size M] [--phase next]   add it as a goal (its own section, size and related by default), remove the suggestion
 upgo suggestion drop <id...> --reason "..." [--section 1]   save as dropped goals, like the dashboard Drop
-upgo check [--all]                             validate one or every project
+upgo check [--all] [--fix]                     validate one or every project; --fix repairs missing dates and a stale goals.md if goals.json is otherwise valid
 upgo render                                    rewrite goals.md from goals.json
 upgo archive [--months 6]                      move done items not updated for N months to goals-archive.json
 upgo ui [--port 4141] [--no-open]
 ```
 
-Every command works from inside the project folder, or anywhere with `--dir <path>` / `--project <id>`.
+Every command works from inside the project folder, or anywhere with `--dir <path>` / `--project <id>`. `show`, `edit`, `done`, `drop` and `reopen` also take a unique id prefix, and a typo suggests the closest id.
 
 ## What a project holds
 
@@ -88,7 +88,7 @@ Outside the projects: `~/.upgo/registry.json` (which projects exist; `UPGO_REGIS
 
 ## When something goes wrong
 
-- **Commit blocked by the pre-commit hook**: run `upgo check` to see why. "goals.md is out of date" is fixed by `upgo render`.
+- **Commit blocked by the pre-commit hook**: run `upgo check` to see why. "goals.md is out of date" is fixed by `upgo render` (or `upgo check --fix`).
 - **"goals.json was saved, but goals.md could not be written"**: the change is in; run `upgo render`. Do not repeat the command.
 - **A write waits or says the file is locked**: another write holds `goals.json.lock`. A lock older than 10s is taken over automatically.
 - **Dashboard says it is not built**: `npm run build` here.

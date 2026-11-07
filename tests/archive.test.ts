@@ -57,6 +57,7 @@ describe("archive", () => {
         const r = cli(["check"], { cwd: dir })
         expect(r.code).toBe(1)
         expect(r.err).toMatch(/goals-archive\.json is not valid JSON/)
+        expect(ok(cli(["show", "alpha"], { cwd: dir }))).toMatch(/^`alpha` Alpha/)
         const hook = cli(["hook"], { cwd: dir, input: JSON.stringify({ cwd: dir, tool_input: { file_path: ARCHIVE } }) })
         expect(hook.code).toBe(2)
         expect(readFileSync(join(dir, ARCHIVE), "utf8")).toBe("{ nope")

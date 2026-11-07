@@ -192,6 +192,19 @@ describe("reading", () => {
         fails(cli(["show", "ghost:x"], { cwd }), /no registered project `ghost`/)
     })
 
+    it("takes a unique id prefix and suggests the closest id on a typo", async () => {
+        const cwd = await registered()
+        expect(ok(cli(["show", "alp"], { cwd }))).toMatch(/^`alpha` Alpha/)
+        expect(ok(cli(["show", "lock"], { cwd }))).toMatch(/^trap `lock-trap`/)
+        fails(cli(["show", "e"], { cwd }), /`e` matches several: `epsilon`, `eta`/)
+        fails(cli(["show", "alpah"], { cwd }), /no item `alpah` in demo \(did you mean `alpha`\?\)/)
+        expect(ok(cli(["done", "gam"], { cwd }))).toBe("done gamma\n")
+        expect(ok(cli(["edit", "del", "--title", "D"], { cwd }))).toBe("edited delta\n")
+        expect(item(cwd, "delta")?.title).toBe("D")
+        fails(cli(["drop", "bta", "--reason", "x"], { cwd }), /did you mean `beta`/)
+        fails(cli(["delete", "bet"], { cwd }), /no item `bet` in demo \(did you mean `beta`\?\)/)
+    })
+
     it("lists projects, including unreadable ones", async () => {
         const cwd = await registered()
         expect(ok(cli(["projects"], { cwd }))).toMatch(/^demo {2}5 open {2}/)
@@ -437,6 +450,26 @@ describe("check, render, forget", () => {
         expect(r.err).toMatch(/1 issue\n {2}- goals.md is out of date/)
         ok(cli(["render"], { cwd }))
         ok(cli(["check"], { cwd }))
+    })
+
+    it("fixes missing dates and a stale goals.md with --fix, leaves the rest to report", async () => {
+        const cwd = await registered()
+        const raw = JSON.parse(readFileSync(join(cwd, GOALS), "utf8"))
+        delete raw.items[0].created
+        delete raw.items[1].updated
+        writeFileSync(join(cwd, GOALS), JSON.stringify(raw))
+        writeFileSync(join(cwd, MD), "# edited by hand\n")
+        const name = cwd.split(/[\\/]/).pop()
+        expect(ok(cli(["check", "--fix"], { cwd }))).toBe(`fixed ${name}: filled missing dates on 2 items\nfixed ${name}: regenerated goals.md\nok: ${name}\n`)
+        expect([item(cwd, "alpha")?.created, item(cwd, "beta")?.updated]).toEqual(["2026-10-01", "2026-10-01"])
+        expect(ok(cli(["check", "--fix"], { cwd }))).toBe(`ok: ${name}\n`)
+        const dup = JSON.parse(readFileSync(join(cwd, GOALS), "utf8"))
+        dup.items.push({ ...dup.items[2] })
+        writeFileSync(join(cwd, GOALS), JSON.stringify(dup))
+        writeFileSync(join(cwd, MD), "# edited by hand\n")
+        const r = cli(["check", "--fix"], { cwd })
+        expect([r.code, r.out]).toEqual([1, ""])
+        expect(r.err).toMatch(/duplicate item id `gamma`/)
     })
 
     it("checks every registered project with --all", async () => {

@@ -6,10 +6,11 @@ import fsp from "node:fs/promises"
 import { basename, dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import { ARCHIVE, archiveDone, DEFAULT_ARCHIVE_MONTHS, monthsBefore, readArchive } from "./src/core/archive.ts"
-import { checkProject, refChecker } from "./src/core/check.ts"
+import { checkProject, fixProject, refChecker } from "./src/core/check.ts"
 import * as m from "./src/core/mutate.ts"
 import { checkRegistrable, findEntry, forget, readRegistry, register } from "./src/core/registry.ts"
 import { isManaged, isOpen, PHASE_LABEL, PHASES, POINTER_KEYS, SIZES, STATUSES, type GoalsFile, type Item, type Pointers } from "./src/core/schema.ts"
+import { resolveId } from "./src/core/similar.ts"
 import { findProjectDir, GOALS, MD, readGoals, saveGoals, serialize, updateGoals, writeAtomic } from "./src/core/store.ts"
 import {
     addSuggestion,
@@ -58,13 +59,16 @@ Writing (each command validates and regenerates goals.md)
 
 Setup and checks
   upgo init [--id slug] [--purpose text] [--no-hooks]   register this folder, install git + Claude hooks
-  upgo check [--all]                  validate (schema, rules, related, detail files, suggestions.json, ${ARCHIVE}, goals.md in sync)
+  upgo check [--all] [--fix]          validate (schema, rules, related, detail files, suggestions.json, ${ARCHIVE}, goals.md in sync)
+                                      --fix first repairs missing item dates and a missing or stale goals.md,
+                                      only when goals.json is otherwise valid
   upgo render                         rewrite goals.md from goals.json
   upgo import <goals.md> [--completed path] [--out file] [--id slug] [--force]
   upgo forget <id>                    drop a project from the registry
   upgo ui [--port 4141] [--no-open]   start the dashboard
 
 Every command takes --dir <path> or --project <id> to target another project.
+show, edit, done, drop and reopen take a unique id prefix too; a typo suggests the closest id.
 Phases: ${PHASES.join(", ")}. Statuses: ${STATUSES.join(", ")}.
 `
 
@@ -345,16 +349,18 @@ async function run(argv: string[], io: Io): Promise<number> {
         case "show": {
             const { values, positionals } = parse(rest, TARGET)
             const target = need(positionals[0], "item id")
-            const [project, id] = target.includes(":") ? target.split(":") : [undefined, target]
+            const [project, given] = target.includes(":") ? target.split(":") : [undefined, target]
             const dir = projectDir(project ? { project } : values)
             const file = readGoals(dir)
+            const live = [...file.items, ...file.traps].map((x) => x.id)
+            // An exact live id never needs the archive, so a broken one cannot block it.
+            const archive = live.includes(given) ? [] : readArchive(dir)
+            const id = resolveId(given, [...live, ...archive.map((i) => i.id)], `no item \`${given}\` in ${file.project}`)
             const item = file.items.find((i) => i.id === id)
             const trap = file.traps.find((t) => t.id === id)
-            const archived = item || trap ? undefined : readArchive(dir).findLast((i) => i.id === id)
             if (item) io.out(itemText(item, file))
             else if (trap) io.out(`trap \`${trap.id}\` ${trap.title}\n${trap.body ? `\n${trap.body.trim()}\n` : ""}`)
-            else if (archived) io.out(`archived in ${ARCHIVE}\n${itemText(archived, file)}`)
-            else throw new UpgoError(`no item \`${id}\` in ${file.project}`)
+            else io.out(`archived in ${ARCHIVE}\n${itemText(archive.findLast((i) => i.id === id)!, file)}`)
             return 0
         }
 
@@ -423,12 +429,13 @@ async function run(argv: string[], io: Io): Promise<number> {
 
         case "edit": {
             const { values, positionals } = parse(rest, { ...FIELDS, clear: { type: "string" } })
-            const id = need(positionals[0], "item id")
+            let id = need(positionals[0], "item id")
             if (values.id) throw new UpgoError("ids cannot be changed")
             const f = fieldsFrom(values)
             const clearable = ["body", "size", "scope", "pointers", "detail", "related", "note"] as const
             const clear = (csv(values.clear) ?? []).map((c) => oneOf("clear", c, clearable)!)
             await updateGoals(projectDir(values), (file) => {
+                id = m.resolveItem(file, id)
                 const current = file.items.find((i) => i.id === id)
                 const patch: m.ItemPatch = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== undefined))
                 if (f.pointers && current) patch.pointers = { ...current.pointers, ...f.pointers }
@@ -444,10 +451,10 @@ async function run(argv: string[], io: Io): Promise<number> {
         case "drop":
         case "reopen": {
             const { values, positionals } = parse(rest, { ...TARGET, note: { type: "string" }, reason: { type: "string" } })
-            const id = need(positionals[0], "item id")
+            let id = need(positionals[0], "item id")
             const status = cmd === "done" ? "done" : cmd === "drop" ? "dropped" : "planned"
             const note = cmd === "drop" ? need(values.reason, "--reason") : values.note
-            await updateGoals(projectDir(values), (file) => m.setStatus(file, id, status, note, day))
+            await updateGoals(projectDir(values), (file) => m.setStatus(file, (id = m.resolveItem(file, id)), status, note, day))
             io.out(`${cmd === "reopen" ? "reopened" : status} ${id}\n`)
             return 0
         }
@@ -656,13 +663,14 @@ async function run(argv: string[], io: Io): Promise<number> {
         }
 
         case "check": {
-            const { values } = parse(rest, { ...TARGET, all: { type: "boolean" } })
+            const { values } = parse(rest, { ...TARGET, all: { type: "boolean" }, fix: { type: "boolean" } })
             const registry = readRegistry()
             const targets = values.all ? registry.map((e) => ({ id: e.id, path: e.path })) : [{ id: "", path: projectDir(values) }]
             let failed = 0
             for (const t of targets) {
-                const issues = checkProject(t.path, registry)
                 const name = t.id || basename(t.path)
+                if (values.fix) for (const f of await fixProject(t.path, day)) io.out(`fixed ${name}: ${f}\n`)
+                const issues = checkProject(t.path, registry)
                 if (issues.length) {
                     failed++
                     io.err(`${name}: ${issues.length} issue${issues.length === 1 ? "" : "s"}\n${issues.map((i) => `  - ${i}`).join("\n")}\n`)

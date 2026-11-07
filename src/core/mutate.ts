@@ -1,4 +1,5 @@
 import type { GoalsFile, Item, Section, Status, Suggestion, Trap } from "./schema.ts"
+import { didYouMean, resolveId } from "./similar.ts"
 import { slugify, uniqueSlug, UpgoError } from "./util.ts"
 
 // Pure edits on a GoalsFile. Each returns a new file; the store validates and writes it.
@@ -12,9 +13,12 @@ const clone = (f: GoalsFile): GoalsFile => structuredClone(f)
 
 function indexOf(f: GoalsFile, id: string): number {
     const i = f.items.findIndex((it) => it.id === id)
-    if (i < 0) throw new UpgoError(`no item \`${id}\` in ${f.project}`)
+    if (i < 0) throw new UpgoError(`no item \`${id}\` in ${f.project}${didYouMean(id, f.items.map((it) => it.id))}`)
     return i
 }
+
+// The item id `id` names: itself or a unique prefix of one.
+export const resolveItem = (f: GoalsFile, id: string) => resolveId(id, f.items.map((i) => i.id), `no item \`${id}\` in ${f.project}`)
 
 export function requireSection(f: GoalsFile, n: number): void {
     if (!f.sections.some((s) => s.n === n)) throw new UpgoError(`no section ${n} in ${f.project} (add it with \`upgo section add\`)`)

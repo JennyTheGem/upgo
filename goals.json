@@ -758,10 +758,11 @@
       "title": "upgo check --fix",
       "body": "Auto-fix the safe problems (goals.md out of sync, missing dates) instead of just reporting them.",
       "phase": "later",
-      "status": "planned",
+      "status": "done",
       "size": "S",
       "created": "2026-11-07",
-      "updated": "2026-11-07"
+      "updated": "2026-11-07",
+      "note": "check --fix fills missing item dates and regenerates a stale goals.md; skips when other rules fail"
     },
     {
       "id": "archive-old-done-items",
@@ -781,10 +782,11 @@
       "title": "Fuzzy id matching",
       "body": "Accept a unique prefix or near id in show, done and edit, and suggest the closest id on a typo.",
       "phase": "later",
-      "status": "planned",
+      "status": "done",
       "size": "S",
       "created": "2026-11-07",
-      "updated": "2026-11-07"
+      "updated": "2026-11-07",
+      "note": "show, edit, done, drop, reopen take a unique prefix; missing ids print did you mean"
     },
     {
       "id": "mcp-server-for-upgo",

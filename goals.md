@@ -10,6 +10,4 @@ Closed sections: §2 Dashboard · §3 Rollout
 
 ## 1. CLI and core
 
-- `upgo-check-fix` upgo check --fix (later)
-- `fuzzy-id-matching` Fuzzy id matching (later)
 - Plus 3 maybe: `upgo list --section 1 --phase maybe`
