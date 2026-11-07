@@ -13,22 +13,40 @@
     padding: var(--padding-lg) var(--padding-sm) var(--padding-md);
 }
 
-/* Masonry: cards keep their own height and stack in columns, no row gaps. */
+/* One sheet of bands: project facts on the left, its setlist on the right. */
 .tourGrid {
     list-style: none;
     margin: 0;
     padding: 0;
-    columns: 320px;
-    column-gap: var(--gap-sm);
-}
-
-.tourProject {
     display: flex;
     flex-direction: column;
     gap: var(--gap-sm);
-    padding: var(--padding-lg);
-    margin-bottom: var(--gap-sm);
-    break-inside: avoid;
+}
+
+.tourProject {
+    display: grid;
+    grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--gap-xs) var(--gap-xl);
+    padding: var(--padding-sm) var(--padding-lg);
+}
+
+/* A flat stage light, no gradient. */
+.tourProject.stage--lit {
+    --surface-paint: color-mix(in oklab, var(--color-accent-solid) 13%, var(--surface-bg));
+}
+
+.tourLead {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+    min-width: 0;
+}
+
+@media (max-width: 720px) {
+    .tourProject {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .tourHeading {
@@ -38,9 +56,8 @@
 
 .tourName {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--gap-md);
+    align-items: center;
+    gap: var(--gap-xs);
     width: 100%;
     box-sizing: border-box;
     border-radius: var(--radius-xs);
@@ -53,29 +70,115 @@
     text-decoration-color: var(--color-accent-solid);
 }
 
+.tourFavorite {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
 .tourName:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px var(--color-focus-ring);
-}
-
-.tourPurpose {
-    line-height: 1.4;
-}
-
-.tourProject .setlist {
-    margin-top: var(--gap-xs);
 }
 
 .tourProject .setlistSong {
     font-size: 1rem;
 }
 
-.tourDone {
-    display: inline-flex;
+/* Idle projects: one row each, name | up next | counts. */
+.tourIdle {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+    padding: var(--padding-md) var(--padding-lg);
+}
+
+.tourIdleList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.tourIdleRow {
+    display: grid;
+    grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto;
     align-items: center;
-    gap: var(--gap-2xs);
-    color: var(--tone-green);
-    opacity: 1;
+    gap: var(--gap-md);
+    min-height: 36px;
+}
+
+.tourIdleRow + .tourIdleRow {
+    border-top: 1px solid color-mix(in srgb, var(--color-white) 6%, transparent);
+}
+
+.tourIdleNext {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    min-width: 0;
+
+    .buttonIcon {
+        flex-shrink: 0;
+        opacity: .6;
+    }
+
+    .buttonIcon:hover,
+    .buttonIcon:focus-visible {
+        opacity: 1;
+    }
+}
+
+.tourIdleName,
+.tourIdleItem,
+.tourFinishedName {
+    border-radius: var(--radius-xs);
+    text-align: left;
+}
+
+.tourIdleItem {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tourIdleName:hover,
+.tourIdleItem:hover,
+.tourFinishedName:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+    text-decoration-color: var(--color-accent-solid);
+}
+
+.tourIdleName:focus-visible,
+.tourIdleItem:focus-visible,
+.tourFinishedName:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+@media (max-width: 640px) {
+    .tourIdleRow {
+        grid-template-columns: minmax(0, 1fr) auto;
+        padding: var(--padding-2xs) 0;
+    }
+
+    .tourIdleNext {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+}
+
+/* Finished projects: one strip of names. */
+.tourFinished {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--gap-xs) var(--gap-md);
+    padding: var(--padding-xs) var(--padding-lg);
 }
 
 .tourTop {

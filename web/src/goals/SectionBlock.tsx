@@ -35,7 +35,7 @@ export default function SectionBlock({ group, over, pinned, api, onMenuAt, onMen
                     <span className="sectionNumber tabular">§{section.n}</span>
                     <h2 className="sectionTitle truncate">{section.title}</h2>
                 </span>
-                {closed ? <span className="microLabel">Closed</span> : <span className="caption-small tabular op-70 no-wrap">{open} open</span>}
+                {closed ? <span className="microLabel">Closed</span> : <span className="caption tabular op-70 no-wrap">{open} open</span>}
                 {open + done > 0 && (
                     <span className="sectionProgress" role="img" aria-label={progress} title={progress}>
                         <span style={{ width: `${percent}%` }} />

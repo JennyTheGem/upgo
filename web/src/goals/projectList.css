@@ -17,7 +17,19 @@
     display: flex;
     flex-direction: column;
     gap: var(--gap-2xs);
+}
+
+/* Both lists scroll together under the Tour entry. */
+.projectListScroll {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    min-height: 0;
     overflow-y: auto;
+}
+
+.projectListItems + .projectListLabel {
+    margin-top: var(--gap-md);
 }
 
 .projectButton {
@@ -136,10 +148,15 @@
         display: none;
     }
 
+    .projectListScroll {
+        flex: 1;
+        min-width: 0;
+        flex-direction: row;
+        overflow: auto hidden;
+    }
+
     .projectListItems {
         flex-direction: row;
-        overflow-x: auto;
-        overflow-y: hidden;
     }
 
     .projectListItems li {
@@ -157,4 +174,10 @@ html[data-reduce-motion] .projectButton {
     flex-shrink: 0;
     align-self: center;
     opacity: .45;
+}
+
+.projectFavorite {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
 }

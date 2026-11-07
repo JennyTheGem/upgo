@@ -17,7 +17,7 @@ function Song({ item, num, onPick }: { item: NowItem; num?: number; onPick: (id:
             </span>
             <span className="setlistTitle">{item.title}</span>
             <span className="setlistTags">
-                {item.status === "partial" && <span className="setlistPartial caption-small">partial</span>}
+                {item.status === "partial" && <span className="setlistPartial caption">partial</span>}
                 {item.size && (
                     <Chip mono tone="orange" title="Size">
                         {item.size}
@@ -78,7 +78,7 @@ export function Setlist({ now, next = [], onPick, onPromote, limit }: {
                     <Song item={n} num={i + 1} onPick={onPick} />
                 </li>
             ))}
-            {shown.length < now.length && <li className="setlistMore caption-small">+{now.length - shown.length} more</li>}
+            {shown.length < now.length && <li className="setlistMore caption">+{now.length - shown.length} more</li>}
         </ol>
     )
 }
@@ -128,7 +128,7 @@ export default function Stage({ title, meta, actions, summary, onPick, onPromote
             </section>
             <div className="stageProgress">
                 <CountBar counts={summary} />
-                <span className="caption-small tabular stageProgressText">
+                <span className="caption tabular stageProgressText">
                     {summary.percent}% done · {open} open
                 </span>
             </div>

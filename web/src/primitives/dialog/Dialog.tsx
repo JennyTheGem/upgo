@@ -49,7 +49,7 @@ export default function Dialog({ open, onClose, title, description, icon, role =
                         )}
                         <div className="dialogHeadText">
                             <span id={titleId} className="dialogTitle size-0_8 font-bold">{title}</span>
-                            {description && <span id={descId} className="dialogDescription caption-small op-50">{description}</span>}
+                            {description && <span id={descId} className="dialogDescription caption op-50">{description}</span>}
                         </div>
                     </div>
                     {children}

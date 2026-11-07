@@ -81,7 +81,7 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
                     <input type="checkbox" className="itemCheck" checked={ticked.has(s.id)} aria-label={`Select ${s.title}`} onChange={() => setTicked((t) => toggled(t, s.id))} />
                     <button type="button" className="itemRowToggle" aria-expanded={open} onClick={() => setExpanded((x) => toggled(x, s.id))}>
                         <span className="itemTitle font-bold truncate">{s.title}</span>
-                        <span className="itemId Inconsolata caption-small truncate">{s.id}</span>
+                        <span className="itemId Inconsolata caption truncate">{s.id}</span>
                     </button>
                     {s.size && (
                         <span className="itemChips">
@@ -122,7 +122,7 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
                     <div className="itemDetail">
                         {s.body ? <Markdown className="itemBody" text={s.body} /> : <span className="caption op-50">No details.</span>}
                         {s.related && <RelatedChips refs={s.related} onOpen={onOpenRelated} />}
-                        <span className="itemMeta caption-small op-50">suggested {s.created}</span>
+                        <span className="itemMeta caption op-50">suggested {s.created}</span>
                     </div>
                 )}
             </li>
@@ -136,7 +136,7 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
     return (
         <>
             <div className="suggestionGroups" role="region" aria-label="Suggestions">
-                <p className="suggestionHint caption-small op-70">Drop keeps it as a dropped goal so agents never suggest it again. Delete just removes it.</p>
+                <p className="suggestionHint caption op-70">Drop keeps it as a dropped goal so agents never suggest it again. Delete just removes it.</p>
                 {groups
                     .filter((g) => g.list.length)
                     .map(({ section, list }) => (
@@ -150,7 +150,7 @@ export default function SuggestionsPanel({ suggestions, error, canAdopt, onAdopt
                                     {section && <span className="sectionNumber tabular">§{section.n}</span>}
                                     <h2 className="sectionTitle truncate">{section?.title ?? "No section"}</h2>
                                 </span>
-                                <span className="caption-small tabular op-70 no-wrap">{list.length} open</span>
+                                <span className="caption tabular op-70 no-wrap">{list.length} open</span>
                             </header>
                             <ul className="itemList">{list.map(row)}</ul>
                         </section>

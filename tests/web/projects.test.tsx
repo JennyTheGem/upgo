@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, screen, within } from "@testing-library/react"
+import { cleanup, fireEvent, screen, within } from "@testing-library/react"
 import { render } from "@testing-library/react"
 import App from "../../web/src/App.tsx"
 import { emit, item, projects, rowIds, setup, toggleOf, waitForRows } from "./helpers.tsx"
@@ -105,12 +105,58 @@ describe("project list", () => {
         const { user, server } = await setup(initial)
         await user.click(screen.getByRole("button", { name: /^Tour/ }))
         const tour = screen.getByRole("region", { name: "Tour" })
-        expect(within(tour).getByText("Nothing in now. Up next:")).toBeInTheDocument()
+        expect(within(within(tour).getByRole("region", { name: "Nothing in now" })).getByText("Beta thing")).toBeInTheDocument()
         expect(within(tour).queryByRole("button", { name: "Copy beta now items" })).toBeNull()
         await user.click(within(tour).getByRole("button", { name: "Move Beta thing to now" }))
         expect(server.ops.at(-1)).toEqual({ op: "edit", id: "beta-thing", patch: { phase: "now" } })
         expect(await within(tour).findByRole("button", { name: "Copy beta now items" })).toBeInTheDocument()
         expect(within(tour).getByRole("button", { name: /^Beta thing/ })).toHaveFocus()
+    })
+
+    it("finished projects move to their own Finished list", async () => {
+        const initial = projects()
+        initial.beta.file!.items = [item("beta-thing", 1, "Beta thing", { status: "done" })]
+        await setup(initial)
+        const nav = screen.getByRole("navigation", { name: "Projects" })
+        const finished = within(nav).getByRole("list", { name: "Finished" })
+        expect(within(finished).getAllByRole("button").map((b) => b.textContent)).toEqual([expect.stringContaining("beta")])
+        expect(within(within(nav).getAllByRole("list")[0]).queryByRole("button", { name: /beta/ })).toBeNull()
+    })
+
+    it("a favorite goes to the top of the list and stays a full card in the tour", async () => {
+        const initial = projects()
+        initial.beta.file!.items = [item("beta-thing", 1, "Beta thing")]
+        const { user } = await setup(initial)
+        await waitForRows()
+        const nav = screen.getByRole("navigation", { name: "Projects" })
+        await user.click(within(nav).getByRole("button", { name: /beta/ }))
+        await user.click(await screen.findByRole("button", { name: "Favorite" }))
+        expect(screen.getByRole("button", { name: "Favorite" })).toHaveAttribute("aria-pressed", "true")
+        expect(within(within(nav).getAllByRole("list")[0]).getAllByRole("button")[0]).toHaveTextContent("beta")
+        expect(localStorage.getItem("upgo:favorites")).toBe('["beta"]')
+
+        await user.click(within(nav).getByRole("button", { name: /^Tour/ }))
+        const tour = screen.getByRole("region", { name: "Tour" })
+        expect(within(tour).getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("beta")
+        expect(within(tour).getByText("Nothing in now. Up next:")).toBeInTheDocument()
+    })
+
+    it("right-click on a project opens its menu: favorite, copy path, open", async () => {
+        const { user } = await setup()
+        await waitForRows()
+        const nav = screen.getByRole("navigation", { name: "Projects" })
+        fireEvent.contextMenu(within(nav).getByRole("button", { name: /beta/ }), { clientX: 40, clientY: 40 })
+        await user.click(await screen.findByRole("menuitem", { name: "Favorite" }))
+        expect(localStorage.getItem("upgo:favorites")).toBe('["beta"]')
+
+        fireEvent.contextMenu(within(nav).getByRole("button", { name: /beta/ }), { clientX: 40, clientY: 40 })
+        expect(await screen.findByRole("menuitem", { name: "Unfavorite" })).toBeInTheDocument()
+        await user.click(screen.getByRole("menuitem", { name: "Copy path" }))
+        expect(await navigator.clipboard.readText()).toBe("E:/work/beta")
+
+        fireEvent.contextMenu(within(nav).getByRole("button", { name: /beta/ }), { clientX: 40, clientY: 40 })
+        await user.click(await screen.findByRole("menuitem", { name: "Open" }))
+        expect(await screen.findByRole("heading", { name: "Core" })).toBeInTheDocument()
     })
 
     it("removes a project after confirming, even an unreadable one", async () => {

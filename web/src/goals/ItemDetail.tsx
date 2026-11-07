@@ -48,7 +48,7 @@ export default function ItemDetail({ item, projectId, onOpen }: { item: Item; pr
                     <span className="caption op-80 break-words">{item.note}</span>
                 </div>
             )}
-            <span className="caption-small op-50">
+            <span className="caption op-50">
                 Created {item.created} · updated {item.updated}
             </span>
             {item.detail && (

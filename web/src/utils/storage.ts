@@ -7,6 +7,15 @@ export function readPref(key: string): string | null {
     }
 }
 
+export function readList(key: string): string[] {
+    try {
+        const v: unknown = JSON.parse(readPref(key) ?? "[]")
+        return Array.isArray(v) ? v.filter((x) => typeof x === "string") : []
+    } catch {
+        return []
+    }
+}
+
 export function writePref(key: string, value: string): void {
     try {
         localStorage.setItem(key, value)

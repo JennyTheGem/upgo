@@ -1,10 +1,10 @@
 import "./tour.css"
+import { useEffect, useRef, type MouseEvent } from "react"
 import { RECENT } from "../../../src/core/summary.ts"
-import { isOpenStatus } from "../../../src/core/vocab.ts"
 import { api, errorText, type ProjectSummary } from "../api.ts"
 import CountBar from "./CountBar.tsx"
 import { ago, daysSince, isFinished, plural } from "./counts.ts"
-import { copyForAgent } from "./format.ts"
+import { copyNow } from "./projectMenu.ts"
 import { Setlist } from "./Stage.tsx"
 import Button from "../primitives/button/Button.tsx"
 import Icon from "../primitives/icon/Icon.tsx"
@@ -13,42 +13,143 @@ import { toast } from "../primitives/toast/toast.ts"
 // Untouched this long reads as stale.
 const STALE_DAYS = 14
 
-// Every project's setlist on one screen. Projects with something in now come first, under the light; finished ones go last.
-// Inside each group the most recently changed come first.
-export default function Tour({ projects, onOpen, onChanged }: { projects: ProjectSummary[]; onOpen: (id: string, item?: string) => void; onChanged: () => void }) {
+// Every project on one screen, in three tiers: full cards for favorites (first) and projects with something in now,
+// one row each for the rest, one strip for finished ones. Inside each tier the most recently changed come first.
+export default function Tour({ projects, favorites = [], onOpen, onChanged, onMenu }: {
+    projects: ProjectSummary[]
+    favorites?: string[]
+    onOpen: (id: string, item?: string) => void
+    onChanged: () => void
+    onMenu?: (e: MouseEvent, p: ProjectSummary) => void
+}) {
     const sum = (pick: (p: ProjectSummary) => number) => projects.reduce((n, p) => n + pick(p), 0)
-    const rank = (p: ProjectSummary) => (p.now.length ? 0 : isFinished(p) ? 2 : 1)
-    const order = [...projects].sort((a, b) => rank(a) - rank(b) || (b.updated ?? "").localeCompare(a.updated ?? ""))
+    const fav = (p: ProjectSummary) => favorites.includes(p.id)
+    const order = [...projects].sort((a, b) => Number(fav(b)) - Number(fav(a)) || (b.updated ?? "").localeCompare(a.updated ?? ""))
+    const cards = order.filter((p) => fav(p) || p.now.length)
+    const rest = order.filter((p) => !cards.includes(p))
+    const finished = rest.filter(isFinished)
+    const idle = rest.filter((p) => !isFinished(p))
     const recent = projects
         .flatMap((p) => p.recent.map((r) => ({ ...r, project: p.id })))
         .sort((a, b) => b.updated.localeCompare(a.updated))
         .slice(0, RECENT)
 
-    const copyNow = async (p: ProjectSummary) => {
-        try {
-            const { file } = await api.project(p.id)
-            await copyForAgent(file.items.filter((i) => i.phase === "now" && isOpenStatus(i.status)))
-        } catch (e) {
-            toast.error(errorText(e))
-        }
-    }
+    // A promoted item jumps from its idle row into a lit card: focus its song there.
+    const moved = useRef<{ project: string; id: string } | null>(null)
+    const page = useRef<HTMLElement>(null)
+    useEffect(() => {
+        const m = moved.current
+        const i = m ? (projects.find((p) => p.id === m.project)?.now.findIndex((n) => n.id === m.id) ?? -1) : -1
+        if (!m || i < 0) return
+        moved.current = null
+        const card = [...(page.current?.querySelectorAll<HTMLElement>("[data-project]") ?? [])].find((c) => c.dataset.project === m.project)
+        if (document.activeElement === document.body) card?.querySelectorAll<HTMLElement>(".setlistSong")[i]?.focus()
+    }, [projects])
+
     const promote = async (project: string, id: string) => {
+        moved.current = { project, id }
         try {
             await api.op(project, { op: "edit", id, patch: { phase: "now" } })
             onChanged()
         } catch (e) {
+            moved.current = null
             toast.error(errorText(e))
         }
     }
 
     return (
-        <section className="tourPage outfit" aria-label="Tour">
+        <section ref={page} className="tourPage outfit" aria-label="Tour">
             <header className="tourHeader">
                 <h1 className="stageHeading">Tour</h1>
                 <span className="caption tabular op-70">
-                    {plural(projects.length, "project")} · {sum((p) => p.now.length)} now · {sum((p) => p.open)} open · {sum((p) => p.done)} done
+                    {sum((p) => p.now.length)} now · {sum((p) => p.open)} open · {plural(projects.length, "project")}
                 </span>
             </header>
+            {cards.length > 0 && (
+                <ul className="tourGrid">
+                    {cards.map((p) => (
+                        <li key={p.id} data-project={p.id} className={`uiContentContainer tourProject ${p.now.length ? "stage--lit" : ""}`} onContextMenu={(e) => onMenu?.(e, p)}>
+                            <div className="tourLead">
+                                <div className="tourTop">
+                                    <h2 className="tourHeading">
+                                        <button type="button" className="tourName" title={p.purpose} onClick={() => onOpen(p.id)}>
+                                            <span className="size-1_2 font-bold truncate">{p.id}</span>
+                                            {fav(p) && <Icon name="iconify:star" color="var(--color-accent-solid)" className="tourFavorite" alt="favorite" />}
+                                        </button>
+                                    </h2>
+                                    {p.now.length > 0 && (
+                                        <Button variant="icon" imgProps={{ img: "iconify:content-copy" }} title="Copy now items for an agent" aria-label={`Copy ${p.id} now items`} onClick={() => copyNow(p.id)} />
+                                    )}
+                                </div>
+                                {!p.error && (
+                                    <>
+                                        <CountBar counts={p} />
+                                        <div className="tourStats">
+                                            <span className="caption tabular op-70">
+                                                {isFinished(p) ? "all done" : `${p.open} open`}
+                                                {!isFinished(p) && <Changed day={p.updated} />}
+                                            </span>
+                                            {p.weekly && <Sparkline weeks={p.weekly} />}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                            {p.error ? (
+                                <span className="projectError caption break-words">{p.error}</span>
+                            ) : (
+                                <Setlist now={p.now} next={p.next} limit={5} onPick={(item) => onOpen(p.id, item)} onPromote={(item) => promote(p.id, item)} />
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            )}
+            {idle.length > 0 && (
+                <section className="uiContentContainer tourIdle" aria-label="Nothing in now">
+                    <span className="microLabel">Nothing in now</span>
+                    <ul className="tourIdleList">
+                        {idle.map((p) => {
+                            const up = p.next[0]
+                            return (
+                                <li key={p.id} className="tourIdleRow" onContextMenu={(e) => onMenu?.(e, p)}>
+                                    <button type="button" className="tourIdleName font-bold truncate" title={p.purpose} onClick={() => onOpen(p.id)}>
+                                        {p.id}
+                                    </button>
+                                    {p.error ? (
+                                        <span className="projectError caption break-words">{p.error}</span>
+                                    ) : up ? (
+                                        <span className="tourIdleNext">
+                                            <span className="caption op-70 no-wrap">Up next</span>
+                                            <button type="button" className="tourIdleItem caption" onClick={() => onOpen(p.id, up.id)}>
+                                                {up.title}
+                                            </button>
+                                            <Button variant="icon" imgProps={{ img: "iconify:arrow-upward" }} title="Move to now" aria-label={`Move ${up.title} to now`} onClick={() => promote(p.id, up.id)} />
+                                        </span>
+                                    ) : (
+                                        <span className="caption op-70">Nothing up next</span>
+                                    )}
+                                    {!p.error && (
+                                        <span className="caption tabular op-70 no-wrap">
+                                            {p.open} open
+                                            <Changed day={p.updated} />
+                                        </span>
+                                    )}
+                                </li>
+                            )
+                        })}
+                    </ul>
+                </section>
+            )}
+            {finished.length > 0 && (
+                <section className="tourFinished" aria-label="Finished">
+                    <Icon name="iconify:check-circle-rounded" color="var(--tone-green)" className="tourRecentIcon" />
+                    <span className="microLabel">Finished</span>
+                    {finished.map((p) => (
+                        <button key={p.id} type="button" className="tourFinishedName caption" title={p.purpose} onClick={() => onOpen(p.id)} onContextMenu={(e) => onMenu?.(e, p)}>
+                            {p.id}
+                        </button>
+                    ))}
+                </section>
+            )}
             {recent.length > 0 && (
                 <section className="uiContentContainer tourRecent" aria-label="Recently done">
                     <span className="microLabel">Recently done</span>
@@ -59,9 +160,9 @@ export default function Tour({ projects, onOpen, onChanged }: { projects: Projec
                                     <Icon name="iconify:check-circle-rounded" color="var(--tone-green)" className="tourRecentIcon" />
                                     <span className="tourRecentText">
                                         <span className="font-bold">{r.title}</span>
-                                        {r.note && <span className="caption-small op-70">{r.note}</span>}
+                                        {r.note && <span className="caption op-70">{r.note}</span>}
                                     </span>
-                                    <span className="caption-small tabular op-70 no-wrap" title={r.updated}>
+                                    <span className="caption tabular op-70 no-wrap" title={r.updated}>
                                         {r.project} · {ago(r.updated)}
                                     </span>
                                 </button>
@@ -70,52 +171,17 @@ export default function Tour({ projects, onOpen, onChanged }: { projects: Projec
                     </ul>
                 </section>
             )}
-            <ul className="tourGrid">
-                {order.map((p) => (
-                    <li key={p.id} className={`uiContentContainer tourProject ${p.now.length ? "stage--lit" : ""}`}>
-                        <div className="tourTop">
-                            <h2 className="tourHeading">
-                                <button type="button" className="tourName" onClick={() => onOpen(p.id)}>
-                                    <span className="size-1_2 font-bold truncate">{p.id}</span>
-                                    {isFinished(p) ? (
-                                        <span className="caption-small tabular no-wrap tourDone">
-                                            <Icon name="iconify:check-circle-rounded" color="currentColor" />
-                                            100% done
-                                        </span>
-                                    ) : (
-                                        !p.error && <span className="caption-small tabular op-70 no-wrap">{p.percent}% done</span>
-                                    )}
-                                </button>
-                            </h2>
-                            {p.now.length > 0 && (
-                                <Button variant="icon" imgProps={{ img: "iconify:content-copy" }} title="Copy now items for an agent" aria-label={`Copy ${p.id} now items`} onClick={() => copyNow(p)} />
-                            )}
-                        </div>
-                        {p.purpose && <span className="caption op-70 tourPurpose">{p.purpose}</span>}
-                        {p.error ? (
-                            <span className="projectError caption-small break-words">{p.error}</span>
-                        ) : (
-                            <>
-                                <CountBar counts={p} />
-                                <div className="tourStats">
-                                    <span className="caption-small tabular op-70">
-                                        {p.open} open{p.phases.next ? ` · ${p.phases.next} next` : ""}
-                                        {p.phases.later ? ` · ${p.phases.later} later` : ""}
-                                        {p.updated && (
-                                            <span className={!isFinished(p) && daysSince(p.updated) >= STALE_DAYS ? "tourStale" : undefined} title={p.updated}>
-                                                {` · changed ${ago(p.updated)}`}
-                                            </span>
-                                        )}
-                                    </span>
-                                    {p.weekly && <Sparkline weeks={p.weekly} />}
-                                </div>
-                                <Setlist now={p.now} next={p.next} limit={5} onPick={(item) => onOpen(p.id, item)} onPromote={(item) => promote(p.id, item)} />
-                            </>
-                        )}
-                    </li>
-                ))}
-            </ul>
         </section>
+    )
+}
+
+// " · changed 3 days ago", amber once it goes stale.
+function Changed({ day }: { day?: string }) {
+    if (!day) return null
+    return (
+        <span className={daysSince(day) >= STALE_DAYS ? "tourStale" : undefined} title={day}>
+            {` · changed ${ago(day)}`}
+        </span>
     )
 }
 

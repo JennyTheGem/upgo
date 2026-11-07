@@ -11,11 +11,12 @@ const anchorOf = (el: Element): DropdownAnchor => {
 export function useDropdownTrigger() {
     const [state, setState] = useState<TriggerState>({ open: false, anchor: null, items: [] })
 
-    // A keyboard context menu (Menu key, Shift+F10) reports 0,0: anchor to the element instead.
-    const openFromEvent = useCallback((e: { clientX: number; clientY: number; currentTarget: EventTarget | null; preventDefault: () => void }, items: DropdownEntry[]) => {
+    // A keyboard context menu (Menu key, Shift+F10) reports 0,0: anchor to the focused element instead.
+    const openFromEvent = useCallback((e: { clientX: number; clientY: number; target: EventTarget | null; currentTarget: EventTarget | null; preventDefault: () => void }, items: DropdownEntry[]) => {
         e.preventDefault()
-        const fromKeyboard = !e.clientX && !e.clientY && e.currentTarget instanceof Element
-        setState({ open: true, anchor: fromKeyboard ? anchorOf(e.currentTarget as Element) : { x: e.clientX, y: e.clientY }, items })
+        const el = e.target instanceof Element ? e.target : e.currentTarget
+        const fromKeyboard = !e.clientX && !e.clientY && el instanceof Element
+        setState({ open: true, anchor: fromKeyboard ? anchorOf(el) : { x: e.clientX, y: e.clientY }, items })
     }, [])
 
     const openFromElement = useCallback((el: Element, items: DropdownEntry[]) => {

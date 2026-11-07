@@ -5,7 +5,6 @@ import { summarize } from "../../../src/core/summary.ts"
 import type { Item, Section, Suggestion } from "../../../src/core/schema.ts"
 import { slugify, uniqueSlug } from "../../../src/core/util.ts"
 import { isOpenStatus } from "../../../src/core/vocab.ts"
-import { api, errorText } from "../api.ts"
 import Button from "../primitives/button/Button.tsx"
 import { confirmAction } from "../primitives/confirmDialog/confirm.ts"
 import Dropdown from "../primitives/dropdown/dropdown.tsx"
@@ -21,6 +20,7 @@ import { copyForAgent } from "./format.ts"
 import ItemModal from "./ItemModal.tsx"
 import { itemMenu, sectionMenu, type ItemActions, type SectionActions } from "./itemMenu.ts"
 import ItemRow, { type RowApi } from "./ItemRow.tsx"
+import { removeProject } from "./projectMenu.ts"
 import ProjectTabs, { type Tab } from "./ProjectTabs.tsx"
 import SectionBlock from "./SectionBlock.tsx"
 import Stage from "./Stage.tsx"
@@ -67,7 +67,14 @@ function scrollToItem(item: Item, step = 0) {
 
 // `focus` opens one item once the project loads (a pick on the tour's setlist).
 // `onOpen` jumps to an item in another project.
-export default function ProjectView({ id, focus, onChanged, onOpen }: { id: string; focus?: string | null; onChanged: () => void; onOpen: (project: string, item: string) => void }) {
+export default function ProjectView({ id, focus, favorite = false, onFavorite, onChanged, onOpen }: {
+    id: string
+    focus?: string | null
+    favorite?: boolean
+    onFavorite?: () => void
+    onChanged: () => void
+    onOpen: (project: string, item: string) => void
+}) {
     const { data, error, reload, run, dismiss } = useProject(id, onChanged)
     const [filters, setFilters] = useState<Filters>(NO_FILTERS)
     const [expanded, setExpanded] = useState<Set<string>>(() => new Set(focus ? [focus] : []))
@@ -115,22 +122,7 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
         document.querySelector<HTMLElement>(`[data-item-id="${moved}"] .itemRowToggle`)?.focus()
     }, [file])
 
-    const forget = async () => {
-        const ok = await confirmAction({
-            message: `Remove "${id}" from upgo?`,
-            description: "Only unregisters it. The folder and its goals.json stay, run upgo init there to add it back.",
-            confirmLabel: "Remove",
-            variant: "destructive",
-        })
-        if (!ok) return
-        try {
-            await api.forget(id)
-            toast.success(`Removed ${id}`)
-            onChanged()
-        } catch (e) {
-            toast.error(errorText(e))
-        }
-    }
+    const forget = () => removeProject(id, onChanged)
     const removeButton = (
         <Button variant="secondary" imgProps={{ img: "iconify:delete" }} onClick={forget}>
             Remove
@@ -322,13 +314,23 @@ export default function ProjectView({ id, focus, onChanged, onOpen }: { id: stri
                 meta={
                     <>
                         {file.purpose && <span className="caption op-80">{file.purpose}</span>}
-                        <span className="Inconsolata caption-small op-50 truncate" title={data.path}>
+                        <span className="Inconsolata caption op-50 truncate" title={data.path}>
                             {data.path}
                         </span>
                     </>
                 }
                 actions={
                     <>
+                        {onFavorite && (
+                            <Button
+                                variant="icon"
+                                imgProps={{ img: favorite ? "iconify:star" : "iconify:star-outline", color: favorite ? "var(--color-accent-solid)" : undefined }}
+                                aria-label="Favorite"
+                                aria-pressed={favorite}
+                                title={favorite ? "Unfavorite" : "Favorite: keep it on top"}
+                                onClick={onFavorite}
+                            />
+                        )}
                         {removeButton}
                         <Button variant="secondary" imgProps={{ img: "iconify:add" }} onClick={addSection}>
                             Add section

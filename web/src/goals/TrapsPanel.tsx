@@ -11,7 +11,7 @@ export default function TrapsPanel({ traps }: { traps: Trap[] }) {
             <button type="button" className="foldToggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
                 <Icon name="iconify:warning-rounded" color="var(--color-warning)" className="foldIcon" />
                 <span className="font-bold">Traps</span>
-                <span className="caption-small op-50">{traps.length}</span>
+                <span className="caption op-50">{traps.length}</span>
                 <Icon name="iconify:expand-more-rounded" className={`foldChevron ${open ? "foldChevron--open" : ""}`} />
             </button>
             {open && (

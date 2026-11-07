@@ -65,7 +65,7 @@ export default function ItemRow({ item, expanded, selected, dropBefore, api, ref
                 />
                 <button type="button" className="itemRowToggle" aria-expanded={expanded} onClick={() => api.toggle(item.id)}>
                     <span className="itemTitle font-bold truncate">{item.title}</span>
-                    <span className="itemId Inconsolata caption-small truncate">{item.id}</span>
+                    <span className="itemId Inconsolata caption truncate">{item.id}</span>
                 </button>
                 <span className="itemChips">
                     <Chip tone={PHASE_TONE[item.phase]} title="Phase">

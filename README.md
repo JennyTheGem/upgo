@@ -21,8 +21,10 @@ Then `upgo help`. The agent skill ships in the package: copy `$(npm root -g)/@up
 
 `upgo ui` serves `http://127.0.0.1:4141` and opens it. It only listens on this machine.
 
-- **Projects**: pick one in the left sidebar. Every registered project shows with its open count.
-- **Tour**: every project as a card with its counts, its now and next items and a small bar strip of done items per week over the last 8 weeks.
+- **Projects**: pick one in the left sidebar. Every registered project shows with its open count; finished ones sit in their own Finished list below.
+- **Tour**: full cards for favorites and projects with now items (counts, setlist, a small bar strip of done items per week over the last 8 weeks), one row per idle project with its first next item, one strip for finished projects, then recently done.
+- **Favorites**: star a project in its header (or its right-click menu) to keep it on top of the list and always a full card in the Tour (saved in this browser).
+- **Project menu**: right-click a project in the sidebar or the Tour to open it, favorite it, copy its now items or path, or remove it.
 - **Filters** (inside the project): search (id, title, body, pointers), Phase, Status, Section, Size, Scope. Done and dropped items stay hidden until **Show done/dropped** is on. **Clear filters** resets.
 - **Read**: click an item's title to expand its body, pointers and related refs; a button loads its detail file.
 - **Change**: right-click a row or use its ⋮ menu: edit, phase, status, done (optional note), drop (asks a reason, with presets), reopen, move up/down, copy, delete.
