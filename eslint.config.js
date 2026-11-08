@@ -6,7 +6,7 @@ import tseslint from "typescript-eslint"
 import { defineConfig, globalIgnores } from "eslint/config"
 
 export default defineConfig([
-    globalIgnores(["web/dist", "dist", "node_modules"]),
+    globalIgnores(["web/dist", "dist", "node_modules", "claude-mod/.claude-plugin/types"]),
     {
         files: ["**/*.{ts,tsx}"],
         extends: [js.configs.recommended, tseslint.configs.recommended],

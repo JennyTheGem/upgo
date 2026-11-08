@@ -10,3 +10,4 @@ registry.json
 tests/fixtures-private/
 .claude/settings.json
 /PLAN.md
+/claude-mod/.claude-plugin/types/

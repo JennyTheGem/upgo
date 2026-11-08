@@ -404,6 +404,18 @@
       "note": "Private files untracked and purged from history, sample import fixture, GitHub schema url, MIT license, noreply email on every commit"
     },
     {
+      "id": "claude-mod",
+      "section": 3,
+      "title": "Claude mod: goals side pane",
+      "body": "claude-mod/: /goals opens a side pane with all open goals by phase, click one to insert it into the prompt.",
+      "phase": "later",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-08",
+      "updated": "2026-11-08",
+      "note": "Mod in claude-mod/, reviewed, validate + 5 tests pass."
+    },
+    {
       "id": "core-store",
       "section": 1,
       "title": "Core: zod schema, store with lock and atomic save",
