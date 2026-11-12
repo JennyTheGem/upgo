@@ -1,5 +1,5 @@
 import type { Item } from "../src/core/schema.ts"
-import { percentDone, summarize, weeklyDone } from "../src/core/summary.ts"
+import { burnUp, percentDone, summarize, weeklyDone } from "../src/core/summary.ts"
 import { D } from "./helpers.ts"
 
 const item = (status: Item["status"], size?: Item["size"], phase: Item["phase"] = "now"): Item => ({ id: "x", section: 1, title: "X", phase, status, created: D, updated: D, ...(size ? { size } : {}) })
@@ -49,5 +49,26 @@ describe("weeklyDone", () => {
         const items = [done("2026-11-07"), done("2026-11-01"), done("2026-10-31"), done("2026-09-13"), done("2026-09-12"), done("2026-11-07", "planned")]
         expect(weeklyDone(items, now)).toEqual([1, 0, 0, 0, 0, 0, 1, 2])
         expect(summarize({ version: 1, project: "p", sections: [], traps: [], items: [] }, [done("2026-11-06")], now).weekly).toEqual([0, 0, 0, 0, 0, 0, 0, 1])
+    })
+})
+
+describe("burnUp", () => {
+    it("steps done and total on each item date, drops leave scope, maybes count once done, ends today", () => {
+        const at = (created: string, updated: string, status: Item["status"], phase: Item["phase"] = "now"): Item => ({ ...item(status, undefined, phase), created, updated })
+        const items = [
+            at("2026-11-01", "2026-11-03", "done"),
+            at("2026-11-01", "2026-11-04", "dropped"),
+            at("2026-11-02", "2026-11-02", "planned"),
+            at("2026-11-02", "2026-11-02", "planned", "maybe"),
+            at("2026-11-01", "2026-11-04", "dropped", "maybe"),
+        ]
+        expect(burnUp(items, new Date(2026, 10, 7))).toEqual([
+            { day: "2026-11-01", done: 0, total: 2 },
+            { day: "2026-11-02", done: 0, total: 3 },
+            { day: "2026-11-03", done: 1, total: 3 },
+            { day: "2026-11-04", done: 1, total: 2 },
+            { day: "2026-11-07", done: 1, total: 2 },
+        ])
+        expect(burnUp([])).toEqual([])
     })
 })

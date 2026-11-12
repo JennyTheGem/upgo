@@ -18,11 +18,24 @@
     padding: var(--padding-xs) var(--padding-md);
 }
 
+.foldHead,
+.foldItemHead {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-xs);
+}
+
+.foldItemHead > .font-bold {
+    flex: 1;
+    min-width: 0;
+}
+
 .foldToggle {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: var(--gap-sm);
-    width: 100%;
     min-height: 44px;
     box-sizing: border-box;
     border-radius: var(--radius-sm);

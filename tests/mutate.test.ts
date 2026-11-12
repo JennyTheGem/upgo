@@ -168,6 +168,10 @@ describe("ops", () => {
         expect(run({ op: "moveSection", n: 2, before: 1 }).sections[0].n).toBe(2)
         expect(() => run({ op: "deleteSection", n: 3 })).toThrow(/still holds/)
         expect(applyOp(m.deleteItem(fixture(), "eta"), { op: "deleteSection", n: 3 }, DAY).sections).toHaveLength(2)
+        const trapped = run({ op: "addTrap", trap: { title: "Op trap", body: "b" }, at: 0 })
+        expect(trapped.traps[0]).toEqual({ id: "op-trap", title: "Op trap", body: "b" })
+        expect(applyOp(trapped, opSchema.parse({ op: "editTrap", id: "op-trap", patch: { title: "T", body: null } }), DAY).traps[0]).toEqual({ id: "op-trap", title: "T" })
+        expect(applyOp(trapped, opSchema.parse({ op: "deleteTrap", id: "op-trap" }), DAY).traps).toEqual(fixture().traps)
     })
 
     it("rejects malformed ops before they reach the file", () => {
@@ -179,6 +183,8 @@ describe("ops", () => {
             { op: "add", item: { section: 1, title: "x", phase: "now", updated: DAY } },
             { op: "add", item: { section: 1, title: "x", phase: "now", created: "soon" } },
             { op: "move", id: "../etc" },
+            { op: "addTrap", trap: { title: " " } },
+            { op: "editTrap", id: "x", patch: { title: "a\nb" } },
         ]) {
             expect(opSchema.safeParse(bad).success, JSON.stringify(bad)).toBe(false)
         }

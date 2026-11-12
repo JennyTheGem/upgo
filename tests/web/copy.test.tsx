@@ -27,6 +27,16 @@ describe("copy to agent", () => {
         expect(screen.queryByRole("toolbar")).toBeNull()
     })
 
+    it("copies the selection wrapped in a prompt", async () => {
+        const { user } = await setup()
+        await waitForRows()
+        const writeText = vi.spyOn(navigator.clipboard, "writeText")
+        await user.click(check("queue-snapshots"))
+        await user.click(within(screen.getByRole("toolbar")).getByRole("button", { name: "Copy as" }))
+        await pick(user, "Review")
+        await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/^Review the work[^\n]*\n\nqueue-snapshots: Queue snapshots$/)))
+    })
+
     it("selects a range with Shift-click", async () => {
         const { user } = await setup()
         await waitForRows()

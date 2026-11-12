@@ -1,6 +1,7 @@
 import { OPEN_STATUSES, PHASES, PHASE_LABEL, isOpenStatus, type Phase, type Status } from "../../../src/core/vocab.ts"
 import type { Item, Section } from "../../../src/core/schema.ts"
 import type { DropdownEntry } from "../primitives/dropdown/dropdown.tsx"
+import { PROMPTS, type Prompt } from "./format.ts"
 
 export type ItemActions = {
     edit: (item: Item) => void
@@ -10,7 +11,7 @@ export type ItemActions = {
     drop: (item: Item) => void
     reopen: (item: Item) => void
     move: (item: Item, dir: "up" | "down") => void
-    copy: (items: Item[]) => void
+    copy: (items: Item[], prompt?: Prompt) => void
     remove: (item: Item) => void
 }
 
@@ -46,6 +47,7 @@ export function itemMenu(item: Item, a: ItemActions, can: { up: boolean; down: b
         { type: "item", id: "up", label: "Move up", icon: "iconify:arrow-upward", disabled: !can.up, onSelect: () => a.move(item, "up") },
         { type: "item", id: "down", label: "Move down", icon: "iconify:arrow-downward", disabled: !can.down, onSelect: () => a.move(item, "down") },
         { type: "item", id: "copy", label: "Copy for agent", icon: "iconify:content-copy", onSelect: () => a.copy([item]) },
+        { type: "item", id: "copyAs", label: "Copy as prompt", icon: "iconify:content-copy", items: promptMenu((p) => a.copy([item], p)) },
         { type: "divider", id: "d2" },
         { type: "item", id: "delete", label: "Delete", icon: "iconify:delete", variant: "danger", onSelect: () => a.remove(item) },
     )
@@ -71,3 +73,7 @@ export function sectionMenu(section: Section, a: SectionActions, can: { up: bool
     }
     return entries
 }
+
+// One entry per prompt wrapper, for the item menu and the selection bar.
+export const promptMenu = (copy: (prompt: Prompt) => void): DropdownEntry[] =>
+    (Object.keys(PROMPTS) as Prompt[]).map((p) => ({ type: "item", id: p, label: PROMPTS[p].label, onSelect: () => copy(p) }))

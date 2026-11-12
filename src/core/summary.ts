@@ -20,6 +20,23 @@ export function weeklyDone(items: Item[], now = new Date()) {
     return weeks
 }
 
+export type BurnPoint = { day: string; done: number; total: number }
+
+// Done versus total on every day an item was added, finished or dropped, oldest first, plus today.
+// Total is what was in scope that day: dropped items leave it on their drop date, maybes only count once done.
+export function burnUp(items: Item[], now = new Date()): BurnPoint[] {
+    const counted = items.filter((i) => i.phase !== "maybe" || i.status === "done")
+    const days = [...new Set(counted.flatMap((i) => (isOpenStatus(i.status) ? [i.created] : [i.created, i.updated])))].sort()
+    if (!days.length) return []
+    const end = today(now)
+    if (days[days.length - 1] < end) days.push(end)
+    return days.map((day) => ({
+        day,
+        done: counted.filter((i) => i.status === "done" && i.updated <= day).length,
+        total: counted.filter((i) => i.created <= day && !(i.status === "dropped" && i.updated <= day)).length,
+    }))
+}
+
 // How much an item counts toward progress. Unsized counts as M.
 export const SIZE_WEIGHT: Record<Size, number> = { S: 1, M: 2, L: 4 }
 

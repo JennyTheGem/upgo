@@ -322,6 +322,42 @@
       "note": "Tour cards show done per week for the last 8 weeks (summary.weekly)"
     },
     {
+      "id": "copy-prompt-templates",
+      "section": 2,
+      "title": "Copy prompt templates",
+      "body": "Pick a wrapper when copying items (implement, review, plan) so the pasted prompt tells the agent what to do.",
+      "phase": "maybe",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-12",
+      "updated": "2026-11-12",
+      "note": "Copy as Implement/Review/Plan in the row menu and selection bar."
+    },
+    {
+      "id": "edit-traps-in-the-dashboard",
+      "section": 2,
+      "title": "Edit traps in the dashboard",
+      "body": "Traps are read-only in the UI today; add, edit and delete them there like items.",
+      "phase": "next",
+      "status": "done",
+      "size": "S",
+      "created": "2026-11-12",
+      "updated": "2026-11-12",
+      "note": "Traps panel adds, edits and deletes traps (addTrap/editTrap/deleteTrap ops, undo)."
+    },
+    {
+      "id": "burn-up-chart",
+      "section": 2,
+      "title": "Burn-up chart",
+      "body": "Done versus total over time per project, built from item dates, for planning sessions.",
+      "phase": "next",
+      "status": "done",
+      "size": "M",
+      "created": "2026-11-12",
+      "updated": "2026-11-12",
+      "note": "Progress tab with a burn-up chart from item dates (burnUp in summary.ts)."
+    },
+    {
       "id": "migrate-rest",
       "section": 3,
       "title": "Migrate remaining repos to upgo",

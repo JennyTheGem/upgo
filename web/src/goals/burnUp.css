@@ -1,0 +1,141 @@
+.burnUp {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    padding: var(--padding-md);
+}
+
+.burnUpHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--gap-sm);
+}
+
+.burnUpLegend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap-md);
+
+    > span {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--gap-xs);
+    }
+}
+
+.burnUpSwatch {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-2xs);
+}
+
+.burnUpSwatch--done {
+    background: var(--tone-accent);
+}
+
+.burnUpSwatch--total {
+    height: 2px;
+    background: var(--phase-done);
+}
+
+.burnUpPlot {
+    position: relative;
+    overflow: hidden;
+
+    svg {
+        display: block;
+        touch-action: pan-y;
+    }
+
+    svg:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px var(--color-focus-ring);
+        border-radius: var(--radius-xs);
+    }
+}
+
+.burnUpGrid line {
+    stroke: var(--color-border-subtle);
+}
+
+.burnUpGrid text,
+.burnUpAxis text {
+    fill: currentColor;
+    opacity: .55;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+.burnUpArea {
+    fill: color-mix(in srgb, var(--tone-accent) 18%, transparent);
+}
+
+.burnUpLine {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+}
+
+.burnUpLine--done {
+    stroke: var(--tone-accent);
+}
+
+.burnUpLine--total {
+    stroke: var(--phase-done);
+}
+
+.burnUpCursor {
+    line {
+        stroke: var(--color-border-subtle-hover);
+    }
+
+    circle {
+        stroke: var(--color-background);
+        stroke-width: 2;
+    }
+
+    .burnUpDot--done {
+        fill: var(--tone-accent);
+    }
+
+    .burnUpDot--total {
+        fill: var(--phase-done);
+    }
+}
+
+.burnUpTip {
+    position: absolute;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--padding-xs) var(--padding-sm);
+    margin-left: 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-subtle-hover);
+    background: var(--color-ui);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.burnUpTip--left {
+    margin-left: 0;
+    transform: translateX(calc(-100% - 10px));
+}
+
+.burnUpNote {
+    margin: 0;
+}
+
+@media (forced-colors: active) {
+    .burnUpLine--done,
+    .burnUpLine--total {
+        stroke: CanvasText;
+    }
+
+    .burnUpLine--total {
+        stroke-dasharray: 6 4;
+    }
+}

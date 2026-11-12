@@ -14,6 +14,10 @@ describe("formatForAgent", () => {
         expect(formatForAgent(items)).toBe("a: First\nLine one\nLine two\n\nb: Second\n\nc: Third")
         expect(formatForAgent([])).toBe("")
     })
+
+    it("puts the picked prompt above the items", () => {
+        expect(formatForAgent([item("a", 1, "First")], "plan")).toMatch(/^Plan these goals[^\n]*\n\na: First$/)
+    })
 })
 
 describe("groupItems", () => {
@@ -95,6 +99,18 @@ describe("undoFor", () => {
         for (const op of [{ op: "delete", id: "smart-playlists" }, { op: "move", id: "smart-playlists", section: 1 }] as Op[]) {
             expect(strip(undone(before, op))).toEqual(strip(before))
         }
+    })
+
+    it.each<Op>([
+        { op: "deleteTrap", id: "backdrop-root" },
+        { op: "editTrap", id: "backdrop-root", patch: { title: "New", body: null } },
+    ])("restores traps in place after $op", (op) => {
+        const before = { ...alpha(), traps: [...alpha().traps, { id: "z", title: "Z" }] }
+        expect(undone(before, op).traps).toEqual(before.traps)
+    })
+
+    it("undoes only the trap fields the edit changed", () => {
+        expect(undoFor(alpha(), { op: "editTrap", id: "backdrop-root", patch: { title: "New" } })!.ops).toEqual([{ op: "editTrap", id: "backdrop-root", patch: { title: "Backdrop root" } }])
     })
 
     it("skips section ops and unknown items", () => {

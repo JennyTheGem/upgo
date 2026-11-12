@@ -154,12 +154,13 @@ export function deleteSection(file: GoalsFile, n: number): GoalsFile {
     return f
 }
 
-export function addTrap(file: GoalsFile, trap: Omit<Trap, "id"> & { id?: string }): { file: GoalsFile; id: string } {
+// `at`: index to insert at (an undone delete goes back to its spot), else the end.
+export function addTrap(file: GoalsFile, trap: Omit<Trap, "id"> & { id?: string }, at = file.traps.length): { file: GoalsFile; id: string } {
     const f = clone(file)
     const taken = new Set(f.traps.map((t) => t.id))
     if (trap.id && taken.has(trap.id)) throw new UpgoError(`trap id \`${trap.id}\` already exists`)
     const id = trap.id ?? uniqueSlug(slugify(trap.title), taken)
-    f.traps.push({ ...trap, id })
+    f.traps.splice(at, 0, { ...trap, id })
     return { file: f, id }
 }
 

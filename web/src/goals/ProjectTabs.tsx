@@ -1,12 +1,13 @@
 import type { KeyboardEvent } from "react"
 import Button from "../primitives/button/Button.tsx"
 
-export type Tab = "goals" | "suggestions"
+export type Tab = "goals" | "suggestions" | "progress"
 
 export default function ProjectTabs({ tab, suggestions, onChange }: { tab: Tab; suggestions: number; onChange: (tab: Tab) => void }) {
     const tabs: [Tab, string][] = [
         ["goals", "Goals"],
         ["suggestions", suggestions ? `Suggestions (${suggestions})` : "Suggestions"],
+        ["progress", "Progress"],
     ]
     // Arrow keys move between tabs (WAI-ARIA tabs pattern).
     const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {

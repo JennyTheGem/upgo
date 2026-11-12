@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { itemSchema, pointersSchema, sectionSchema, slug, STATUSES, type GoalsFile } from "./schema.ts"
+import { itemSchema, pointersSchema, sectionSchema, slug, STATUSES, trapSchema, type GoalsFile } from "./schema.ts"
 import * as m from "./mutate.ts"
 
 // The one write vocabulary the dashboard speaks. The server validates a request body against `opSchema`
@@ -29,6 +29,7 @@ export const itemPatchSchema = z.strictObject({
     note: clearable(z.string()),
 })
 
+const t = trapSchema.shape
 const n = sectionSchema.shape.n
 const title = sectionSchema.shape.title
 
@@ -44,6 +45,9 @@ export const opSchema = z.discriminatedUnion("op", [
     z.strictObject({ op: z.literal("renameSection"), n, title }),
     z.strictObject({ op: z.literal("moveSection"), n, before: n.nullable() }),
     z.strictObject({ op: z.literal("deleteSection"), n }),
+    z.strictObject({ op: z.literal("addTrap"), trap: trapSchema.partial({ id: true }), at: z.number().int().nonnegative().optional() }),
+    z.strictObject({ op: z.literal("editTrap"), id: slug, patch: z.strictObject({ title: t.title.optional(), body: clearable(z.string()) }) }),
+    z.strictObject({ op: z.literal("deleteTrap"), id: slug }),
 ])
 
 export type Op = z.infer<typeof opSchema>
@@ -72,6 +76,12 @@ export function applyOp(file: GoalsFile, op: Op, day: string): GoalsFile {
             return m.moveSection(file, op.n, op.before)
         case "deleteSection":
             return m.deleteSection(file, op.n)
+        case "addTrap":
+            return m.addTrap(file, op.trap, op.at).file
+        case "editTrap":
+            return m.editTrap(file, op.id, op.patch)
+        case "deleteTrap":
+            return m.deleteTrap(file, op.id)
         default:
             throw new Error(`unknown op ${JSON.stringify(op satisfies never)}`)
     }

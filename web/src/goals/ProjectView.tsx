@@ -1,7 +1,7 @@
 import "./projectView.css"
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
 import { fromSuggestion, hintedSection } from "../../../src/core/mutate.ts"
-import { summarize } from "../../../src/core/summary.ts"
+import { summarize, withArchived } from "../../../src/core/summary.ts"
 import type { Item, Section, Suggestion } from "../../../src/core/schema.ts"
 import { slugify, uniqueSlug } from "../../../src/core/util.ts"
 import { isOpenStatus } from "../../../src/core/vocab.ts"
@@ -14,11 +14,12 @@ import ErrorState from "../primitives/errorState/ErrorState.tsx"
 import { promptText } from "../primitives/promptDialog/prompt.ts"
 import SelectionBar from "../primitives/selectionBar/SelectionBar.tsx"
 import { toast } from "../primitives/toast/toast.ts"
+import BurnUp from "./BurnUp.tsx"
 import FilterBar from "./FilterBar.tsx"
 import { NO_FILTERS, groupItems, type Filters, type Group } from "./filters.ts"
 import { copyForAgent } from "./format.ts"
 import ItemModal from "./ItemModal.tsx"
-import { itemMenu, sectionMenu, type ItemActions, type SectionActions } from "./itemMenu.ts"
+import { itemMenu, promptMenu, sectionMenu, type ItemActions, type SectionActions } from "./itemMenu.ts"
 import ItemRow, { type RowApi } from "./ItemRow.tsx"
 import { removeProject } from "./projectMenu.ts"
 import ProjectTabs, { type Tab } from "./ProjectTabs.tsx"
@@ -345,7 +346,9 @@ export default function ProjectView({ id, focus, favorite = false, onFavorite, o
             <ProjectTabs tab={tab} suggestions={data.suggestions.length} onChange={setTab} />
 
             <div className="projectTabPanel" id="project-tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
-                {tab === "suggestions" ? (
+                {tab === "progress" ? (
+                    <BurnUp items={withArchived(file.items, data.archived)} />
+                ) : tab === "suggestions" ? (
                     <SuggestionsPanel
                         suggestions={data.suggestions}
                         error={data.suggestionsError}
@@ -360,7 +363,7 @@ export default function ProjectView({ id, focus, favorite = false, onFavorite, o
                     />
                 ) : (
                     <>
-                        {file.traps.length > 0 && <TrapsPanel traps={file.traps} />}
+                        <TrapsPanel traps={file.traps} run={run} />
 
                         <FilterBar file={file} filters={filters} onChange={setFilters} />
 
@@ -405,6 +408,14 @@ export default function ProjectView({ id, focus, favorite = false, onFavorite, o
                             <SelectionBar count={pickedItems.length} onExit={() => setPicked(new Set())}>
                                 <Button variant="primary" imgProps={{ img: "iconify:content-copy" }} onClick={() => copyForAgent(pickedItems)}>
                                     Copy
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    imgProps={{ img: "iconify:expand-more-rounded", side: "right" }}
+                                    aria-haspopup="menu"
+                                    onClick={(e) => menu.openFromElement(e.currentTarget, promptMenu((p) => copyForAgent(pickedItems, p)))}
+                                >
+                                    Copy as
                                 </Button>
                             </SelectionBar>
                         )}

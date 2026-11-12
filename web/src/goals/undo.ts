@@ -18,6 +18,15 @@ function placeBack(file: GoalsFile, item: Item): Op {
 
 // The ops that turn the file after `op` back into `file`, the file before it.
 export function undoFor(file: GoalsFile, op: Op): Undo | null {
+    if (op.op === "editTrap" || op.op === "deleteTrap") {
+        const at = file.traps.findIndex((t) => t.id === op.id)
+        const trap = file.traps[at]
+        if (!trap) return null
+        if (op.op === "deleteTrap") return { message: `Deleted trap "${trap.title}"`, ops: [{ op: "addTrap", trap, at }] }
+        const p = op.patch
+        const patch = { ...(p.title !== undefined ? { title: trap.title } : {}), ...(p.body !== undefined ? { body: trap.body ?? null } : {}) }
+        return { message: `Edited trap "${trap.title}"`, ops: [{ op: "editTrap", id: trap.id, patch }] }
+    }
     if (!("id" in op)) return null
     const item = file.items.find((i) => i.id === op.id)
     if (!item) return null

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, screen, within } from "@testing-library/react"
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { render } from "@testing-library/react"
 import App from "../../web/src/App.tsx"
 import { emit, item, projects, rowIds, setup, toggleOf, waitForRows } from "./helpers.tsx"
@@ -198,6 +198,36 @@ describe("project view", () => {
         await user.click(toggle)
         expect(screen.getByText("Backdrop root")).toBeInTheDocument()
         expect(screen.getByText("Never fade a wrapper around a surface.")).toBeInTheDocument()
+    })
+
+    it("adds, edits and deletes traps, with an undo for the delete", async () => {
+        const { user, server } = await setup()
+        await waitForRows()
+        await user.click(screen.getByRole("button", { name: "Add trap" }))
+        let dialog = within(await screen.findByRole("dialog", { name: "Add trap" }))
+        await user.type(dialog.getByRole("textbox", { name: "Title" }), "Hot reload lies")
+        await user.click(dialog.getByRole("button", { name: "Add trap" }))
+        await waitFor(() => expect(server.state.alpha.file!.traps.map((t) => t.id)).toEqual(["backdrop-root", "hot-reload-lies"]))
+
+        await user.click(screen.getByRole("button", { name: "Edit trap Backdrop root" }))
+        dialog = within(await screen.findByRole("dialog", { name: "Edit trap backdrop-root" }))
+        await user.clear(dialog.getByRole("textbox", { name: "Body" }))
+        await user.click(dialog.getByRole("button", { name: "Save" }))
+        await waitFor(() => expect(server.state.alpha.file!.traps[0]).toEqual({ id: "backdrop-root", title: "Backdrop root" }))
+
+        await user.click(screen.getByRole("button", { name: "Delete trap Backdrop root" }))
+        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Delete" }))
+        await waitFor(() => expect(server.state.alpha.file!.traps.map((t) => t.id)).toEqual(["hot-reload-lies"]))
+        await user.click(await screen.findByRole("button", { name: "Undo" }))
+        await waitFor(() => expect(server.state.alpha.file!.traps.map((t) => t.id)).toEqual(["backdrop-root", "hot-reload-lies"]))
+    })
+
+    it("draws the burn-up on the Progress tab", async () => {
+        const { user } = await setup()
+        await waitForRows()
+        await user.click(screen.getByRole("tab", { name: "Progress" }))
+        // alpha's items all date from DAY, so the chart runs from DAY to today; the dropped one never counts.
+        expect(await screen.findByRole("img", { name: /^Burn-up from 2026-10-12 to .*: 1 of 5 done, 4 open\.$/ })).toBeInTheDocument()
     })
 
     it("renders sections in file order with closed ones collapsed", async () => {
